@@ -1,0 +1,16 @@
+{
+  "name": "Vestiaire",
+  "short_name": "Vestiaire",
+  "description": "Votre dressing en photos et un conseiller de tenues.",
+  "lang": "fr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8f4ec",
+  "theme_color": "#f8f4ec",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
