@@ -1,24 +1,115 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Search, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { EmptyState, GarmentCard, LocalNotice, Page, PageHeader, SettingsLink, Swatch } from "@/components/vestiaire/ui";
+import { useDemoControls, useGarments, useMode } from "@/lib/store";
+import { CATEGORIES, COLORS, SEASONS, type Category, type Season } from "@/lib/wardrobe";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "Mon dressing — Vestiaire" },
+      { name: "description", content: "Toutes vos pièces photographiées, filtrables par catégorie, couleur et saison." },
+      { property: "og:title", content: "Mon dressing — Vestiaire" },
+      { property: "og:description", content: "Toutes vos pièces photographiées, filtrables par catégorie, couleur et saison." },
+    ],
+  }),
+  component: Dressing,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function Dressing() {
+  const { mode, ready } = useMode();
+  const { data, isLoading, error } = useGarments();
+  const demo = useDemoControls();
+  const [q, setQ] = useState("");
+  const [cat, setCat] = useState<Category | "all">("all");
+  const [color, setColor] = useState<string | null>(null);
+  const [season, setSeason] = useState<Season | null>(null);
+  const [onlyFav, setOnlyFav] = useState(false);
+  const [onlyAvail, setOnlyAvail] = useState(false);
+
+  const items = data ?? [];
+  const usedColors = useMemo(() => COLORS.filter((c) => items.some((g) => g.colors.includes(c.value))), [items]);
+  const filtered = items.filter(
+    (g) =>
+      (cat === "all" || g.category === cat) &&
+      (!color || g.colors.includes(color)) &&
+      (!season || g.seasons.length === 0 || g.seasons.includes(season)) &&
+      (!onlyFav || g.favorite) &&
+      (!onlyAvail || g.available) &&
+      (!q || g.name.toLowerCase().includes(q.toLowerCase())),
+  );
+  const hasFilter = cat !== "all" || color || season || onlyFav || onlyAvail || q;
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <Page>
+      <PageHeader eyebrow={mode === "demo" ? "Démonstration" : "Mon vestiaire"} title="Dressing" action={<SettingsLink />} />
+
+      {(!ready || isLoading) && (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="aspect-[4/5] animate-pulse rounded-2xl bg-muted" />)}
+        </div>
+      )}
+      {error && <EmptyState title="Stockage inaccessible" text={`${(error as Error).message} Vérifiez que la navigation privée est désactivée.`} />}
+
+      {ready && !isLoading && !error && items.length === 0 && (
+        <EmptyState
+          title={mode === "demo" ? "Démo vide" : "Votre dressing est vide"}
+          text="Photographiez vos vraies pièces une par une. Vestiaire vous aidera ensuite à composer des tenues avec ce que vous avez déjà."
+        >
+          <Button asChild size="lg"><Link to="/ajouter">Ajouter ma première pièce</Link></Button>
+          {mode === "perso" && (
+            <Button variant="outline" onClick={() => demo.start()}>Explorer une démonstration</Button>
+          )}
+          <LocalNotice />
+        </EmptyState>
+      )}
+
+      {items.length > 0 && (
+        <>
+          <div className="relative mb-3">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <input className="field !pl-10" placeholder="Rechercher une pièce" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Rechercher" />
+          </div>
+          <div className="-mx-5 mb-2 flex gap-2 overflow-x-auto px-5 pb-1 md:mx-0 md:flex-wrap md:px-0">
+            <button className="chip" data-active={cat === "all"} onClick={() => setCat("all")}>Tout · {items.length}</button>
+            {CATEGORIES.map((c) => {
+              const n = items.filter((g) => g.category === c.value).length;
+              return (
+                <button key={c.value} className="chip" data-active={cat === c.value} onClick={() => setCat(c.value)}>
+                  {c.plural} · {n}
+                </button>
+              );
+            })}
+          </div>
+          <div className="-mx-5 mb-5 flex gap-2 overflow-x-auto px-5 pb-1 md:mx-0 md:flex-wrap md:px-0">
+            <button className="chip" data-active={onlyAvail} onClick={() => setOnlyAvail(!onlyAvail)}>Disponibles</button>
+            <button className="chip" data-active={onlyFav} onClick={() => setOnlyFav(!onlyFav)}>Favoris</button>
+            {SEASONS.map((s) => (
+              <button key={s.value} className="chip" data-active={season === s.value} onClick={() => setSeason(season === s.value ? null : s.value)}>{s.label}</button>
+            ))}
+            {usedColors.map((c) => (
+              <button key={c.value} className="chip !px-3" data-active={color === c.value} onClick={() => setColor(color === c.value ? null : c.value)} aria-label={`Couleur ${c.label}`}>
+                <Swatch color={c.value} /> {c.label}
+              </button>
+            ))}
+            {hasFilter && (
+              <button className="chip" onClick={() => { setCat("all"); setColor(null); setSeason(null); setOnlyFav(false); setOnlyAvail(false); setQ(""); }}>
+                <X className="size-3.5" /> Effacer
+              </button>
+            )}
+          </div>
+          {filtered.length === 0 ? (
+            <p className="py-12 text-center text-muted-foreground">Aucune pièce ne correspond à ces filtres.</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4">
+              {filtered.map((g) => <GarmentCard key={g.id} g={g} />)}
+            </div>
+          )}
+          {mode === "perso" && <div className="mt-10"><LocalNotice /></div>}
+        </>
+      )}
+    </Page>
   );
 }
