@@ -45,7 +45,10 @@ function Piece() {
             <button className="chip" data-active={g.favorite} onClick={() => update({ favorite: !g.favorite })}><Heart className="size-4" /> Favori</button>
             <button className="chip" data-active={!g.available} onClick={() => update({ available: !g.available })}>{g.available ? "Disponible" : "Au lavage"}</button>
           </div>
-          <Button asChild variant="outline" className="mt-4 w-full"><Link to="/conseiller" search={{ piece: g.id }}>Associer cette pièce</Link></Button>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <Button asChild variant="outline"><Link to="/conseiller" search={{ piece: g.id }}>Associer cette pièce</Link></Button>
+            <Button asChild variant="outline"><Link to="/composer" search={{ piece: g.id }}>Composer avec</Link></Button>
+          </div>
         </div>
         <div>
           <GarmentForm value={f} onChange={setF} />

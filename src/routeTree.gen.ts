@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AjouterRouteImport } from './routes/ajouter'
+import { Route as ComposerRouteImport } from './routes/composer'
 import { Route as ConseillerRouteImport } from './routes/conseiller'
 import { Route as FavorisRouteImport } from './routes/favoris'
 import { Route as ReglagesRouteImport } from './routes/reglages'
@@ -24,6 +25,11 @@ const IndexRoute = IndexRouteImport.update({
 const AjouterRoute = AjouterRouteImport.update({
   id: '/ajouter',
   path: '/ajouter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComposerRoute = ComposerRouteImport.update({
+  id: '/composer',
+  path: '/composer',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConseillerRoute = ConseillerRouteImport.update({
@@ -50,6 +56,7 @@ const PieceIdRoute = PieceIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ajouter': typeof AjouterRoute
+  '/composer': typeof ComposerRoute
   '/conseiller': typeof ConseillerRoute
   '/favoris': typeof FavorisRoute
   '/reglages': typeof ReglagesRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ajouter': typeof AjouterRoute
+  '/composer': typeof ComposerRoute
   '/conseiller': typeof ConseillerRoute
   '/favoris': typeof FavorisRoute
   '/reglages': typeof ReglagesRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/ajouter': typeof AjouterRoute
+  '/composer': typeof ComposerRoute
   '/conseiller': typeof ConseillerRoute
   '/favoris': typeof FavorisRoute
   '/reglages': typeof ReglagesRoute
@@ -75,13 +84,27 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/ajouter' | '/conseiller' | '/favoris' | '/reglages' | '/piece/$id'
+    | '/'
+    | '/ajouter'
+    | '/composer'
+    | '/conseiller'
+    | '/favoris'
+    | '/reglages'
+    | '/piece/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/ajouter' | '/conseiller' | '/favoris' | '/reglages' | '/piece/$id'
+  to:
+    | '/'
+    | '/ajouter'
+    | '/composer'
+    | '/conseiller'
+    | '/favoris'
+    | '/reglages'
+    | '/piece/$id'
   id:
     | '__root__'
     | '/'
     | '/ajouter'
+    | '/composer'
     | '/conseiller'
     | '/favoris'
     | '/reglages'
@@ -91,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AjouterRoute: typeof AjouterRoute
+  ComposerRoute: typeof ComposerRoute
   ConseillerRoute: typeof ConseillerRoute
   FavorisRoute: typeof FavorisRoute
   ReglagesRoute: typeof ReglagesRoute
@@ -111,6 +135,13 @@ declare module '@tanstack/react-router' {
       path: '/ajouter'
       fullPath: '/ajouter'
       preLoaderRoute: typeof AjouterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/composer': {
+      id: '/composer'
+      path: '/composer'
+      fullPath: '/composer'
+      preLoaderRoute: typeof ComposerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/conseiller': {
@@ -147,6 +178,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AjouterRoute: AjouterRoute,
+  ComposerRoute: ComposerRoute,
   ConseillerRoute: ConseillerRoute,
   FavorisRoute: FavorisRoute,
   ReglagesRoute: ReglagesRoute,

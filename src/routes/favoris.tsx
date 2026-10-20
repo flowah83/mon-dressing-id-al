@@ -23,7 +23,7 @@ function Favoris() {
   const del = useDeleteOutfit();
   return (
     <Page>
-      <PageHeader eyebrow="Mes tenues" title="Favoris" />
+      <PageHeader eyebrow="Mes tenues" title="Favoris" action={<Button asChild size="sm" variant="outline"><Link to="/composer">Composer</Link></Button>} />
       {!isLoading && outfits.length === 0 && (
         <EmptyState title="Aucune tenue gardée" text="Demandez des idées au conseiller et gardez celles qui vous plaisent."><Button asChild><Link to="/conseiller">Ouvrir le conseiller</Link></Button></EmptyState>
       )}
