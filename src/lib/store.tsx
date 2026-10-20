@@ -79,6 +79,7 @@ export function useImageSrc(g?: Pick<Garment, "image" | "imageUrl"> | null) {
       return () => URL.revokeObjectURL(u);
     }
     setSrc(g?.imageUrl);
+    return undefined;
   }, [g?.image, g?.imageUrl]);
   return src;
 }

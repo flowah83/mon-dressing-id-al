@@ -12,7 +12,7 @@ import { useGarments, useMode, useOutfits, useSaveOutfit } from "@/lib/store";
 import { LEVELS, OCCASIONS, STYLES, type Level, type Occasion, type StyleTag } from "@/lib/wardrobe";
 
 export const Route = createFileRoute("/conseiller")({
-  validateSearch: (s: Record<string, unknown>): { piece?: string } => (typeof s.piece === "string" ? { piece: s.piece } : {}),
+  validateSearch: (s: Record<string, unknown>): { piece?: string } => (typeof s["piece"] === "string" ? { piece: s["piece"] } : {}),
   head: () => ({
     meta: [
       { title: "Conseiller de tenues — Vestiaire" },

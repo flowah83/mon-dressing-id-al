@@ -43,7 +43,7 @@ describe("conseiller", () => {
   it("ajoute une veste quand il fait froid", () => {
     const items = [g("t", "haut", ["blanc"]), g("b", "bas", ["noir"]), g("s", "chaussures", ["noir"]), g("v", "veste", ["marine"])];
     const r = generateOutfits({ items, occasion: "travail", style: "any", temperature: 5, level: "simple" });
-    expect(r.proposals[0].itemIds).toContain("v");
+    expect(r.proposals[0]!.itemIds).toContain("v");
   });
 
   it("exclut les pièces sport pour une occasion chic", () => {

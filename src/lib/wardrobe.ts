@@ -35,8 +35,8 @@ export interface Outfit {
   name: string;
   itemIds: string[];
   source: "manuel" | "conseiller";
-  explanation?: string;
-  feedback?: "like" | "dislike";
+  explanation?: string | undefined;
+  feedback?: "like" | "dislike" | undefined;
   createdAt: number;
 }
 
