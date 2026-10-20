@@ -6,7 +6,7 @@ export interface AdvisorInput {
   style: StyleTag | "any";
   temperature: number;
   level: Level;
-  anchorId?: string;
+  anchorId?: string | undefined;
   /** Saved outfits with feedback, used to favour / avoid combinations. */
   feedback?: { itemIds: string[]; feedback?: "like" | "dislike" }[];
 }
@@ -164,7 +164,7 @@ export function scoreOutfit(pieces: Garment[], opts: { style: StyleTag | "any"; 
     reasons.push("Palette entièrement neutre : facile à porter et toujours cohérente.");
   } else if (accents.length === 1) {
     score += opts.level === "audacieux" ? 1.5 : 3;
-    reasons.push(`Base neutre réveillée par une seule couleur : ${colorLabel(accents[0])}.`);
+    reasons.push(`Base neutre réveillée par une seule couleur : ${colorLabel(accents[0]!)}.`);
   } else if (families.length === 1) {
     score += opts.level === "simple" ? 0 : 3;
     reasons.push(`Camaïeu harmonieux autour de la même famille (${accents.map(colorLabel).join(", ")}).`);

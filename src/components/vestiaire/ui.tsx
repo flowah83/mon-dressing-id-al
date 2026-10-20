@@ -149,7 +149,7 @@ export function Collage({ items, className }: { items: Garment[]; className?: st
   const [first, ...rest] = items;
   return (
     <div className={cn("grid aspect-square grid-cols-2 gap-1.5 rounded-2xl bg-photo p-1.5", className)}>
-      <GarmentImage g={first} className={cn("rounded-xl", rest.length ? "row-span-2" : "col-span-2 row-span-2")} />
+      <GarmentImage g={first!} className={cn("rounded-xl", rest.length ? "row-span-2" : "col-span-2 row-span-2")} />
       {rest.length > 0 && (
         <div className={cn("grid gap-1.5", rest.length > 2 ? "grid-cols-2" : "grid-cols-1")} style={{ gridRow: "span 2" }}>
           {rest.slice(0, 4).map((g) => (

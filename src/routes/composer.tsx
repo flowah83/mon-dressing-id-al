@@ -9,7 +9,7 @@ import { useGarments, useMode, useSaveOutfit } from "@/lib/store";
 import { CATEGORIES, type Category } from "@/lib/wardrobe";
 
 export const Route = createFileRoute("/composer")({
-  validateSearch: (s: Record<string, unknown>): { piece?: string } => (typeof s.piece === "string" ? { piece: s.piece } : {}),
+  validateSearch: (s: Record<string, unknown>): { piece?: string } => (typeof s["piece"] === "string" ? { piece: s["piece"] } : {}),
   head: () => ({
     meta: [
       { title: "Composer une tenue — Vestiaire" },

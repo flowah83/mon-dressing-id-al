@@ -90,8 +90,8 @@ function Ajouter() {
 
   async function onSave() {
     if (!blob) return;
-    if (!fields.name.trim()) return toast.error("Donnez un nom à la pièce.");
-    if (!fields.colors.length) return toast.error("Choisissez au moins une couleur.");
+    if (!fields.name.trim()) { toast.error("Donnez un nom à la pièce."); return; }
+    if (!fields.colors.length) { toast.error("Choisissez au moins une couleur."); return; }
     setStatus("saving");
     try {
       const id = uid();
