@@ -8,7 +8,7 @@ export interface AdvisorInput {
   level: Level;
   anchorId?: string | undefined;
   /** Saved outfits with feedback, used to favour / avoid combinations. */
-  feedback?: { itemIds: string[]; feedback?: "like" | "dislike" }[];
+  feedback?: { itemIds: string[]; feedback?: "like" | "dislike" | undefined }[];
 }
 
 export interface Proposal {
