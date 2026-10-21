@@ -14,13 +14,129 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ai_usage: {
+        Row: {
+          advice: number
+          analyses: number
+          day: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          advice?: number
+          analyses?: number
+          day: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          advice?: number
+          analyses?: number
+          day?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      garments: {
+        Row: {
+          available: boolean
+          category: string
+          colors: string[]
+          created_at: string
+          deleted_at: string | null
+          favorite: boolean
+          id: string
+          image_path: string | null
+          name: string
+          notes: string
+          pattern: string
+          seasons: string[]
+          style: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          available?: boolean
+          category: string
+          colors?: string[]
+          created_at?: string
+          deleted_at?: string | null
+          favorite?: boolean
+          id: string
+          image_path?: string | null
+          name: string
+          notes?: string
+          pattern: string
+          seasons?: string[]
+          style: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          available?: boolean
+          category?: string
+          colors?: string[]
+          created_at?: string
+          deleted_at?: string | null
+          favorite?: boolean
+          id?: string
+          image_path?: string | null
+          name?: string
+          notes?: string
+          pattern?: string
+          seasons?: string[]
+          style?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      outfits: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          explanation: string | null
+          feedback: string | null
+          id: string
+          item_ids: string[]
+          name: string
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          explanation?: string | null
+          feedback?: string | null
+          id: string
+          item_ids?: string[]
+          name: string
+          source: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          explanation?: string | null
+          feedback?: string | null
+          id?: string
+          item_ids?: string[]
+          name?: string
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      consume_ai_quota: { Args: { kind: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
