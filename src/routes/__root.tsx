@@ -8,11 +8,12 @@ import {
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AccountProvider } from "@/lib/account";
+import { shouldRegisterServiceWorker } from "@/lib/pwa";
 import { ModeProvider } from "@/lib/store";
 import { BottomNav, DemoBanner } from "@/components/vestiaire/ui";
 import { Toaster } from "@/components/ui/sonner";
@@ -21,17 +22,17 @@ function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <h1 className="font-display text-7xl text-foreground">404</h1>
+        <h2 className="mt-4 font-display text-3xl text-foreground">Page introuvable</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          Cette adresse n'existe pas dans Vestiaire.
         </p>
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground"
           >
-            Go home
+            Retour à l'accueil
           </Link>
         </div>
       </div>
@@ -49,11 +50,9 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
+        <h1 className="font-display text-3xl text-foreground">Cette page n'a pas pu s'afficher</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          Un problème est survenu. Vous pouvez réessayer, ou revenir à l'accueil.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -61,15 +60,15 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground"
           >
-            Try again
+            Réessayer
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-border bg-card px-5 text-sm font-medium"
           >
-            Go home
+            Retour à l'accueil
           </a>
         </div>
       </div>
@@ -83,9 +82,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "Vestiaire — votre dressing et vos tenues" },
-      { name: "description", content: "Photographiez vos vêtements et composez des tenues avec ce que vous avez déjà." },
+      {
+        name: "description",
+        content: "Photographiez vos vêtements et composez des tenues avec ce que vous avez déjà.",
+      },
       { property: "og:title", content: "Vestiaire" },
-      { property: "og:description", content: "Votre dressing en photos et un conseiller de tenues." },
+      {
+        property: "og:description",
+        content: "Votre dressing en photos et un conseiller de tenues.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "theme-color", content: "#f8f4ec" },
@@ -129,11 +134,31 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!shouldRegisterServiceWorker(import.meta.env.PROD, "serviceWorker" in navigator)) return;
+    void navigator.serviceWorker.register("/sw.js");
+  }, []);
+
+  useEffect(() => {
+    const paths = [
+      "/",
+      "/ajouter",
+      "/composer",
+      "/conseiller",
+      "/favoris",
+      "/reglages",
+      "/compte",
+    ] as const;
+    for (const to of paths) void router.preloadRoute({ to }).catch(() => undefined);
+  }, [router]);
 
   return (
     <QueryClientProvider client={queryClient}>
       <AccountProvider>
         <ModeProvider>
+          <OfflineNote />
           <DemoBanner />
           <Outlet />
           <BottomNav />
@@ -141,5 +166,26 @@ function RootComponent() {
         </ModeProvider>
       </AccountProvider>
     </QueryClientProvider>
+  );
+}
+
+function OfflineNote() {
+  const [offline, setOffline] = useState(false);
+  useEffect(() => {
+    const sync = () => setOffline(typeof navigator !== "undefined" && navigator.onLine === false);
+    sync();
+    window.addEventListener("online", sync);
+    window.addEventListener("offline", sync);
+    return () => {
+      window.removeEventListener("online", sync);
+      window.removeEventListener("offline", sync);
+    };
+  }, []);
+  if (!offline) return null;
+  return (
+    <p className="bg-foreground px-5 py-3 text-center text-sm text-background">
+      Hors ligne. Le dressing de cet appareil reste ouvert. La météo, le conseil du styliste et la
+      copie en ligne reprendront avec le réseau.
+    </p>
   );
 }

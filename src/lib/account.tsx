@@ -1,6 +1,15 @@
 import { useQueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { toast } from "sonner";
 import { applySessionCookie, getSupabase, isCloudConfigured, writeCacheOwner } from "./cloud";
 import { registerSync, requestSync, requestSyncNow } from "./sync-bridge";
@@ -78,6 +87,15 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         let outcome: SyncOutcome = { ok: false, message: "Sauvegarde interrompue." };
         do {
           pending.current = false;
+          if (typeof navigator !== "undefined" && navigator.onLine === false) {
+            setSyncState("idle");
+            setSyncMessage("Hors ligne : la copie en ligne reprendra avec le réseau.");
+            outcome = {
+              ok: false,
+              message: "Hors ligne : la copie en ligne reprendra avec le réseau.",
+            };
+            break;
+          }
           setSyncState("saving");
           outcome = await syncPersonalAccount(id);
           if (!outcome.ok) {
@@ -154,12 +172,15 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     const onHide = () => {
       if (document.visibilityState === "hidden") requestSyncNow();
     };
+    const onOnline = () => requestSync();
     window.addEventListener("focus", onVisible);
+    window.addEventListener("online", onOnline);
     document.addEventListener("visibilitychange", onVisible);
     document.addEventListener("visibilitychange", onHide);
     return () => {
       unregister();
       window.removeEventListener("focus", onVisible);
+      window.removeEventListener("online", onOnline);
       document.removeEventListener("visibilitychange", onVisible);
       document.removeEventListener("visibilitychange", onHide);
     };
@@ -178,6 +199,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     if (!id) return;
     const outcome = await execute(id);
     if (outcome.ok) toast.success("Sauvegarde en ligne à jour");
+    else if (outcome.message.startsWith("Hors ligne")) toast.message(outcome.message);
     else toast.error(outcome.message);
   }, [execute]);
 

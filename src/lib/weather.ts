@@ -238,7 +238,7 @@ export function freshnessLabel(fetchedAt: number, now: number): string {
 export function weatherErrorText(reason: WeatherFailure): string {
   switch (reason) {
     case "denied":
-      return "La localisation a été refusée. Indiquez la température avec le curseur. Pour la météo automatique, autorisez la position dans les réglages du navigateur, puis touchez Utiliser ma position.";
+      return "La localisation a été refusée. Seule la température du curseur compte : la pluie et le vent restent inconnus.";
     case "offline":
       return "Vous êtes hors ligne. La météo n'a pas pu être lue : indiquez la température avec le curseur.";
     case "timeout":

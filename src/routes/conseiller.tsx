@@ -1,17 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Heart, Loader2, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { WeatherCard } from "@/components/vestiaire/WeatherCard";
 import { Collage, EmptyState, Page, PageHeader } from "@/components/vestiaire/ui";
-import { useAdvisorWeather } from "@/hooks/use-advisor-weather";
 import { useAuth } from "@/lib/account";
 import { adviseOutfits } from "@/lib/ai.functions";
 import { ensureAccessCookie } from "@/lib/cloud";
 import { uid } from "@/lib/db";
+import { findOutfitByPieces, outfitKey } from "@/lib/outfit-match";
 import { generateOutfits, type AdvisorResult } from "@/lib/rules";
+import { sliderChangeIsDeliberate } from "@/lib/slider-intent";
 import { useGarments, useMode, useOutfits, useSaveOutfit } from "@/lib/store";
 import {
   adviceTemperature,
@@ -20,6 +21,7 @@ import {
   toAdviceWeather,
   toWeatherHints,
 } from "@/lib/weather";
+import { useAdvisorWeather } from "@/hooks/use-advisor-weather";
 import {
   LEVELS,
   OCCASIONS,
@@ -66,28 +68,37 @@ function Conseiller() {
   const [level, setLevel] = useState<Level>("simple");
   const [anchor, setAnchor] = useState<string>(piece ?? "");
   const [res, setRes] = useState<AdvisorResult | null>(null);
+  const [savedKeys, setSavedKeys] = useState<string[]>([]);
   const [ai, setAi] = useState<{
     loading: boolean;
     error?: string;
     advice?: { index: number; title: string; text: string }[];
   }>({ loading: false });
+  const pointer = useRef({ active: false, x: 0, y: 0, moved: 0 });
+  const autoRef = useRef("");
+  const proposeRef = useRef<() => Promise<void>>(async () => {});
+
+  const snapshot = weather.state.snapshot;
+  const followed = !manual && !!snapshot;
+  const temperature = followed && snapshot ? adviceTemperature(snapshot) : temp;
+  const daily =
+    occasion === "quotidien" && level === "simple" && style === "any" && !anchor && followed;
 
   useEffect(() => {
-    if (manual || !weather.state.snapshot) return;
-    setTemp(adviceTemperature(weather.state.snapshot));
-  }, [manual, weather.state.snapshot]);
+    if (manual || !snapshot) return;
+    setTemp(adviceTemperature(snapshot));
+  }, [manual, snapshot]);
 
-  const byId = (id: string) => items.find((g) => g.id === id)!;
-  const followed = !manual && !!weather.state.snapshot;
+  const piecesOf = (ids: string[]) =>
+    ids.map((id) => items.find((g) => g.id === id)).filter((g): g is NonNullable<typeof g> => !!g);
 
-  async function run() {
-    const snapshot = weather.state.snapshot;
+  async function propose(withAi: boolean) {
     const hints = snapshot ? toWeatherHints(snapshot) : undefined;
     const r = generateOutfits({
       items,
       occasion,
       style,
-      temperature: temp,
+      temperature,
       level,
       anchorId: anchor || undefined,
       feedback: outfits,
@@ -95,7 +106,15 @@ function Conseiller() {
     });
     setRes(r);
     setAi({ loading: false });
-    if (!r.proposals.length) return;
+    if (!withAi || !r.proposals.length) return;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      setAi({
+        loading: false,
+        error:
+          "Hors ligne : le texte du styliste reprendra avec le réseau. La tenue suit les règles de style.",
+      });
+      return;
+    }
     setAi({ loading: true });
     try {
       await ensureAccessCookie();
@@ -103,11 +122,11 @@ function Conseiller() {
         data: {
           occasion,
           style,
-          temperature: temp,
+          temperature,
           level,
           ...(snapshot ? { weather: toAdviceWeather(snapshot) } : {}),
           outfits: r.proposals.map((p) => ({
-            pieces: p.itemIds.map(byId).map((g) => ({
+            pieces: piecesOf(p.itemIds).map((g) => ({
               category: g.category,
               name: g.name,
               colors: g.colors,
@@ -124,6 +143,35 @@ function Conseiller() {
       setAi({ loading: false, error: "Conseil IA indisponible pour le moment." });
     }
   }
+  proposeRef.current = () => propose(false);
+
+  useEffect(() => {
+    if (!garments.isSuccess || items.length === 0) return;
+    if (weather.state.phase !== "ready" && weather.state.phase !== "error") return;
+    const key = `${weather.state.phase}:${snapshot?.fetchedAt ?? "none"}:${items.length}`;
+    if (autoRef.current === key) return;
+    autoRef.current = key;
+    void proposeRef.current();
+  }, [garments.isSuccess, items.length, weather.state.phase, snapshot]);
+
+  async function keep(itemIds: string[], name: string, explanation?: string) {
+    const key = outfitKey(itemIds);
+    if (savedKeys.includes(key) || findOutfitByPieces(outfits, itemIds)) return;
+    setSavedKeys((prev) => [...prev, key]);
+    await saveOutfit.mutateAsync({
+      id: uid(),
+      mode,
+      name,
+      itemIds,
+      source: "conseiller",
+      explanation,
+      createdAt: Date.now(),
+    });
+    toast.success("Tenue ajoutée aux favoris");
+  }
+
+  const known = (ids: string[]) =>
+    savedKeys.includes(outfitKey(ids)) || !!findOutfitByPieces(outfits, ids);
 
   return (
     <Page>
@@ -160,94 +208,161 @@ function Conseiller() {
             manual={manual}
             onRetry={weather.retry}
             onUseForecast={() => {
-              if (!weather.state.snapshot) return;
+              if (!snapshot) return;
               setManual(false);
-              setTemp(adviceTemperature(weather.state.snapshot));
+              setTemp(adviceTemperature(snapshot));
             }}
           />
-          <Group label="Occasion">
-            {OCCASIONS.map((o) => (
-              <button
-                key={o.value}
-                className="chip"
-                data-active={occasion === o.value}
-                onClick={() => setOccasion(o.value)}
-              >
-                {o.label}
-              </button>
-            ))}
-          </Group>
-          <Group label="Mode">
-            {LEVELS.map((l) => (
-              <button
-                key={l.value}
-                className="chip"
-                data-active={level === l.value}
-                onClick={() => setLevel(l.value)}
-              >
-                {l.label}
-              </button>
-            ))}
-          </Group>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <label className="block">
-              <span className="eyebrow">Style</span>
-              <select
-                className="field mt-2"
-                value={style}
-                onChange={(e) => setStyle(e.target.value as StyleTag | "any")}
-              >
-                <option value="any">Peu importe</option>
-                {STYLES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="eyebrow">
-                {followed
-                  ? `Température (ressenti) : ${temp} °C`
-                  : `Température (à la main) : ${temp} °C`}
-              </span>
-              <input
-                type="range"
-                min={TEMP_MIN}
-                max={TEMP_MAX}
-                value={temp}
-                aria-label="Température pour le conseil"
-                onChange={(e) => {
-                  setManual(true);
-                  setTemp(Number(e.target.value));
-                }}
-                className="mt-4 w-full accent-primary"
-              />
-            </label>
-            <label className="block">
-              <span className="eyebrow">Pièce imposée</span>
-              <select
-                className="field mt-2"
-                value={anchor}
-                onChange={(e) => setAnchor(e.target.value)}
-              >
-                <option value="">Aucune</option>
-                {items.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm leading-relaxed">
             {followed
-              ? "Le curseur suit le ressenti. Déplacez-le si vous préférez une autre température."
-              : "La température vient de vous. La pluie et le vent, s'ils sont connus, restent pris en compte."}
+              ? `La tenue du jour suit le ressenti (${temperature} °C), pour un usage quotidien. La pluie et le vent, s'ils sont connus, ajoutent une couche.`
+              : weather.state.reason === "denied"
+                ? "Sans localisation, seule la température du curseur compte. La pluie et le vent restent inconnus."
+                : manual
+                  ? "Vous avez quitté le ressenti : la tenue suit la température du curseur."
+                  : "Dès que la météo est connue, une tenue du jour est proposée (quotidien, ressenti)."}
           </p>
-          <Button size="lg" className="w-full sm:w-auto" onClick={run}>
-            Proposer des tenues
-          </Button>
+
+          <details className="rounded-3xl bg-card p-4 shadow-soft">
+            <summary className="min-h-11 cursor-pointer text-base font-medium">
+              Ajuster la proposition
+            </summary>
+            <div className="mt-4 space-y-5">
+              <Group label="Occasion">
+                {OCCASIONS.map((o) => (
+                  <button
+                    type="button"
+                    key={o.value}
+                    className="chip"
+                    data-active={occasion === o.value}
+                    onClick={() => setOccasion(o.value)}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </Group>
+              <div>
+                <Group label="Ambiance">
+                  {LEVELS.map((l) => (
+                    <button
+                      type="button"
+                      key={l.value}
+                      className="chip"
+                      data-active={level === l.value}
+                      onClick={() => setLevel(l.value)}
+                    >
+                      {l.label}
+                    </button>
+                  ))}
+                </Group>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Simple : neutres, une couleur au plus. Travaillé : harmonies et couches. Audacieux
+                  : contrastes et motifs.
+                </p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <label className="block">
+                  <span className="eyebrow">Style</span>
+                  <select
+                    className="field mt-2"
+                    value={style}
+                    onChange={(e) => setStyle(e.target.value as StyleTag | "any")}
+                  >
+                    <option value="any">Peu importe</option>
+                    {STYLES.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div>
+                  <label className="block">
+                    <span className="eyebrow">
+                      {followed ? `Ressenti : ${temperature} °C` : `Curseur : ${temperature} °C`}
+                    </span>
+                    <input
+                      type="range"
+                      min={TEMP_MIN}
+                      max={TEMP_MAX}
+                      value={temperature}
+                      aria-label="Température pour le conseil"
+                      onPointerDown={(e) => {
+                        pointer.current = { active: true, x: e.clientX, y: e.clientY, moved: 0 };
+                      }}
+                      onPointerMove={(e) => {
+                        if (!pointer.current.active) return;
+                        const d = Math.hypot(
+                          e.clientX - pointer.current.x,
+                          e.clientY - pointer.current.y,
+                        );
+                        if (d > pointer.current.moved) pointer.current.moved = d;
+                      }}
+                      onPointerUp={() => {
+                        pointer.current.active = false;
+                        pointer.current.moved = 0;
+                      }}
+                      onPointerCancel={() => {
+                        pointer.current.active = false;
+                        pointer.current.moved = 0;
+                      }}
+                      onKeyDown={() => {
+                        pointer.current.active = false;
+                      }}
+                      onChange={(e) => {
+                        const next = Number(e.target.value);
+                        if (
+                          !sliderChangeIsDeliberate({
+                            pointerActive: pointer.current.active,
+                            pointerMovedPx: pointer.current.moved,
+                          })
+                        )
+                          return;
+                        setManual(true);
+                        setTemp(next);
+                      }}
+                      className="mt-4 h-11 w-full accent-primary"
+                    />
+                  </label>
+                  {manual && snapshot && (
+                    <Button
+                      type="button"
+                      className="mt-3 min-h-11 w-full"
+                      onClick={() => {
+                        setManual(false);
+                        setTemp(adviceTemperature(snapshot));
+                      }}
+                    >
+                      Revenir au ressenti ({adviceTemperature(snapshot)} °C)
+                    </Button>
+                  )}
+                </div>
+                <label className="block">
+                  <span className="eyebrow">Je veux porter</span>
+                  <select
+                    className="field mt-2"
+                    value={anchor}
+                    onChange={(e) => setAnchor(e.target.value)}
+                  >
+                    <option value="">Aucune pièce en particulier</option>
+                    {items
+                      .filter((g) => g.available)
+                      .map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+          </details>
+
+          {!res && weather.state.phase === "loading" && (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" /> Préparation de la tenue du jour…
+            </p>
+          )}
 
           {res && res.missing.length > 0 && (
             <div className="rounded-2xl border border-border bg-card p-5">
@@ -266,7 +381,7 @@ function Conseiller() {
           ))}
           {ai.loading && (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" /> Conseil IA en cours…
+              <Loader2 className="size-4 animate-spin" /> Conseil du styliste en cours…
             </p>
           )}
           {ai.error && (
@@ -274,19 +389,28 @@ function Conseiller() {
               {ai.error} Les explications ci-dessous viennent des règles de style.
             </p>
           )}
+          {res && res.proposals.length > 0 && (
+            <h2 className="text-3xl">{daily ? "La tenue du jour" : "Propositions"}</h2>
+          )}
           <div className="grid gap-6 md:grid-cols-3">
             {res?.proposals.map((p, i) => {
-              const pieces = p.itemIds.map(byId);
+              const pieces = piecesOf(p.itemIds);
               const adv = ai.advice?.find((a) => a.index === i) ?? ai.advice?.[i];
+              const already = known(p.itemIds);
+              const title =
+                i === 0 && daily
+                  ? (adv?.title ?? "La tenue du jour")
+                  : (adv?.title ?? `Tenue ${i + 1}`);
               return (
                 <article key={p.itemIds.join()} className="rounded-3xl bg-card p-3 shadow-soft">
                   <Collage items={pieces} />
                   <div className="p-2">
-                    <h2 className="mt-2 text-2xl">{adv?.title ?? `Tenue ${i + 1}`}</h2>
+                    {i === 0 && daily && <p className="eyebrow mt-2">Pour aujourd'hui</p>}
+                    <h2 className="mt-2 text-2xl">{title}</h2>
                     <p className="mt-1 text-sm">{pieces.map((g) => g.name).join(" · ")}</p>
                     {adv && (
                       <p className="mt-3 rounded-xl bg-accent p-3 text-sm text-accent-foreground">
-                        <Sparkles className="mr-1 inline size-3.5" /> Conseil IA : {adv.text}
+                        <Sparkles className="mr-1 inline size-3.5" /> {adv.text}
                       </p>
                     )}
                     <p className="eyebrow mt-3">Règles de style</p>
@@ -296,31 +420,30 @@ function Conseiller() {
                       ))}
                     </ul>
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-4"
-                      onClick={async () => {
-                        await saveOutfit.mutateAsync({
-                          id: uid(),
-                          mode,
-                          name:
-                            adv?.title ??
-                            `Tenue ${OCCASIONS.find((o) => o.value === occasion)?.label}`,
-                          itemIds: p.itemIds,
-                          source: "conseiller",
-                          explanation: adv?.text,
-                          createdAt: Date.now(),
-                        });
-                        toast.success("Tenue ajoutée aux favoris");
-                      }}
+                      variant={already ? "secondary" : "outline"}
+                      size="default"
+                      className="mt-4 min-h-11 w-full"
+                      disabled={already}
+                      onClick={() => void keep(p.itemIds, title, adv?.text)}
                     >
-                      <Heart /> Garder en favori
+                      <Heart /> {already ? "Déjà dans les favoris" : "Garder en favori"}
                     </Button>
                   </div>
                 </article>
               );
             })}
           </div>
+          <div className="h-16" aria-hidden />
+        </div>
+      )}
+      {items.length > 0 && (
+        <div
+          className="fixed inset-x-0 z-30 mx-auto max-w-5xl px-5"
+          style={{ bottom: "calc(env(safe-area-inset-bottom) + 4.75rem)" }}
+        >
+          <Button size="lg" className="w-full shadow-lift" onClick={() => void propose(true)}>
+            Proposer des tenues
+          </Button>
         </div>
       )}
     </Page>

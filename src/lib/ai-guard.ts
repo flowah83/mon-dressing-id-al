@@ -15,7 +15,10 @@ function failure(code: string, message: string): AiFailure {
   return { ok: false, code, message };
 }
 
-export function messageFor(kind: AiKind, reason: "config" | "signed-out" | "expired" | "limit" | "unavailable"): string {
+export function messageFor(
+  kind: AiKind,
+  reason: "config" | "signed-out" | "expired" | "limit" | "unavailable",
+): string {
   if (reason === "config") {
     return kind === "analysis"
       ? "L'analyse automatique n'est pas encore activée."
@@ -40,9 +43,12 @@ export function messageFor(kind: AiKind, reason: "config" | "signed-out" | "expi
 }
 
 export function screenGarmentImage(image: unknown): { ok: true; image: string } | AiFailure {
-  if (typeof image !== "string" || !image) return failure("invalid", "Cette photo n'est pas dans un format accepté (JPEG, PNG ou WebP).");
-  if (image.length > MAX_IMAGE_CHARS) return failure("invalid", "Cette photo est trop lourde pour l'analyse.");
-  if (!IMAGE_PREFIX.test(image)) return failure("invalid", "Cette photo n'est pas dans un format accepté (JPEG, PNG ou WebP).");
+  if (typeof image !== "string" || !image)
+    return failure("invalid", "Cette photo n'est pas dans un format accepté (JPEG, PNG ou WebP).");
+  if (image.length > MAX_IMAGE_CHARS)
+    return failure("invalid", "Cette photo est trop lourde pour l'analyse.");
+  if (!IMAGE_PREFIX.test(image))
+    return failure("invalid", "Cette photo n'est pas dans un format accepté (JPEG, PNG ou WebP).");
   const comma = image.indexOf(",");
   const b64 = comma >= 0 ? image.slice(comma + 1) : "";
   if (!b64 || !/^[A-Za-z0-9+/]+={0,2}$/.test(b64)) {
@@ -50,7 +56,8 @@ export function screenGarmentImage(image: unknown): { ok: true; image: string } 
   }
   const padding = b64.endsWith("==") ? 2 : b64.endsWith("=") ? 1 : 0;
   const bytes = Math.floor((b64.length * 3) / 4) - padding;
-  if (bytes <= 0 || bytes > MAX_IMAGE_BYTES) return failure("invalid", "Cette photo est trop lourde pour l'analyse.");
+  if (bytes <= 0 || bytes > MAX_IMAGE_BYTES)
+    return failure("invalid", "Cette photo est trop lourde pour l'analyse.");
   return { ok: true, image };
 }
 
@@ -86,9 +93,17 @@ export function screenAdvice(input: unknown): { ok: true; data: AdvicePayload } 
   const style = shortText(raw["style"], 40);
   const level = shortText(raw["level"], 40);
   const temperature = raw["temperature"];
-  if (!occasion || !style || !level || typeof temperature !== "number" || !Number.isFinite(temperature)) return invalid;
+  if (
+    !occasion ||
+    !style ||
+    !level ||
+    typeof temperature !== "number" ||
+    !Number.isFinite(temperature)
+  )
+    return invalid;
   if (temperature < -40 || temperature > 60) return invalid;
-  if (!Array.isArray(raw["outfits"]) || raw["outfits"].length < 1 || raw["outfits"].length > 3) return invalid;
+  if (!Array.isArray(raw["outfits"]) || raw["outfits"].length < 1 || raw["outfits"].length > 3)
+    return invalid;
 
   const outfits: AdvicePayload["outfits"] = [];
   for (const outfit of raw["outfits"]) {
@@ -104,7 +119,8 @@ export function screenAdvice(input: unknown): { ok: true; data: AdvicePayload } 
       const pattern = shortText(row["pattern"], 40);
       const pieceStyle = shortText(row["style"], 40);
       if (!category || !name || !pattern || !pieceStyle) return invalid;
-      if (!Array.isArray(row["colors"]) || row["colors"].length < 1 || row["colors"].length > 8) return invalid;
+      if (!Array.isArray(row["colors"]) || row["colors"].length < 1 || row["colors"].length > 8)
+        return invalid;
       const colors: string[] = [];
       for (const color of row["colors"]) {
         const label = shortText(color, 30);
@@ -117,8 +133,14 @@ export function screenAdvice(input: unknown): { ok: true; data: AdvicePayload } 
   }
 
   const weather = sanitizeAdviceWeather(raw["weather"]);
-  const data: AdvicePayload = { occasion, style, temperature, level, outfits };
-  if (weather) data.weather = weather;
+  const data: AdvicePayload = {
+    occasion,
+    style,
+    temperature,
+    level,
+    outfits,
+    ...(weather ? { weather } : {}),
+  };
   if (JSON.stringify(data).length > 20_000) return invalid;
   return { ok: true, data };
 }
