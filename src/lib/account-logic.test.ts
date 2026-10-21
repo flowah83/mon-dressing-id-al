@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { readAccessToken } from "./access-cookie";
 import { frenchAuthError, isPlausibleEmail, passwordIssue } from "./auth-errors";
 import { parisDay } from "./quota";
-import { getSupabase, resetBrowserSupabaseForTests } from "@/integrations/supabase/client";
+import { getSupabase, resetBrowserSupabaseForTests } from "./cloud";
 import { readSupabaseConfig, serverEnv } from "./supabase-env";
 
 afterEach(() => {
