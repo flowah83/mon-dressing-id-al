@@ -5,7 +5,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Collage, EmptyState, Page, PageHeader } from "@/components/vestiaire/ui";
+import { useAuth } from "@/lib/account";
 import { adviseOutfits } from "@/lib/ai.functions";
+import { ensureAccessCookie } from "@/lib/cloud";
 import { uid } from "@/lib/db";
 import { generateOutfits, type AdvisorResult } from "@/lib/rules";
 import { useGarments, useMode, useOutfits, useSaveOutfit } from "@/lib/store";
@@ -27,6 +29,7 @@ export const Route = createFileRoute("/conseiller")({
 function Conseiller() {
   const { piece } = Route.useSearch();
   const { mode } = useMode();
+  const auth = useAuth();
   const { data: items = [] } = useGarments();
   const { data: outfits = [] } = useOutfits();
   const saveOutfit = useSaveOutfit();
@@ -48,6 +51,7 @@ function Conseiller() {
     if (!r.proposals.length) return;
     setAi({ loading: true });
     try {
+      await ensureAccessCookie();
       const a = await advise({ data: { occasion, style, temperature: temp, level, outfits: r.proposals.map((p) => ({ pieces: p.itemIds.map(byId).map((g) => ({ category: g.category, name: g.name, colors: g.colors, pattern: g.pattern, style: g.style })) })) } });
       setAi(a.ok ? { loading: false, advice: a.data.advice } : { loading: false, error: a.message });
     } catch {
@@ -58,6 +62,13 @@ function Conseiller() {
   return (
     <Page>
       <PageHeader eyebrow={mode === "demo" ? "Démonstration" : "Avec vos pièces"} title="Conseiller" />
+      {auth.ready && !auth.user && (
+        <p className="mb-4 text-sm text-muted-foreground">
+          {auth.configured
+            ? "Les tenues sont composées avec vos pièces. Le texte du styliste demande une connexion."
+            : "Le texte du styliste sera disponible avec le compte en ligne. Les règles de style fonctionnent déjà."}
+        </p>
+      )}
       {items.length === 0 ? (
         <EmptyState title="Rien à associer" text="Ajoutez d'abord des pièces à votre dressing."><Button asChild><Link to="/ajouter">Ajouter une pièce</Link></Button></EmptyState>
       ) : (

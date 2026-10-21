@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as db from "./db";
+import { requestSync } from "./sync-bridge";
 import type { Garment, Mode, Outfit } from "./wardrobe";
 import tshirt from "@/assets/demo/tshirt.jpg";
 import jean from "@/assets/demo/jean.jpg";
@@ -49,24 +50,52 @@ export function useGarment(id: string) {
   return useQuery({ queryKey: ["garment", id], queryFn: async () => (await db.getGarment(id)) ?? null, enabled: ready });
 }
 
+function stamp<T extends { updatedAt?: number }>(row: T): T {
+  return { ...row, updatedAt: Date.now() };
+}
+
 export function useSaveGarment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (g: Garment) => db.putGarment(g),
+    mutationFn: async (g: Garment) => {
+      const next = stamp(g);
+      await db.putGarment(next);
+      if (next.mode === "perso") requestSync();
+    },
     onSuccess: () => qc.invalidateQueries(),
   });
 }
 export function useDeleteGarment() {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: (g: Garment) => db.removeGarmentEverywhere(g), onSuccess: () => qc.invalidateQueries() });
+  return useMutation({
+    mutationFn: async (g: Garment) => {
+      await db.removeGarmentEverywhere(g);
+      if (g.mode === "perso") requestSync();
+    },
+    onSuccess: () => qc.invalidateQueries(),
+  });
 }
 export function useSaveOutfit() {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: (o: Outfit) => db.putOutfit(o), onSuccess: () => qc.invalidateQueries({ queryKey: ["outfits"] }) });
+  return useMutation({
+    mutationFn: async (o: Outfit) => {
+      const next = stamp(o);
+      await db.putOutfit(next);
+      if (next.mode === "perso") requestSync();
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["outfits"] }),
+  });
 }
 export function useDeleteOutfit() {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: (id: string) => db.deleteOutfit(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["outfits"] }) });
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const existing = await db.getOutfitRaw(id);
+      await db.deleteOutfit(id);
+      if (!existing || existing.mode === "perso") requestSync();
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["outfits"] }),
+  });
 }
 
 /** Object URLs for blob photos, revoked on unmount. */
