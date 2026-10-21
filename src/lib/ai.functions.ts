@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { sanitizeAdviceWeather, type AdviceWeather } from "@/lib/weather";
 
 const MODEL = "openai/gpt-6-astra";
 
@@ -6,12 +7,17 @@ export type AiResult<T> = { ok: true; data: T } | { ok: false; code: string; mes
 
 async function callResponses(body: Record<string, unknown>): Promise<AiResult<string>> {
   const key = process.env["LOVABLE_API_KEY"];
-  if (!key) return { ok: false, code: "config", message: "Le service d'analyse n'est pas configuré." };
+  if (!key)
+    return { ok: false, code: "config", message: "Le service d'analyse n'est pas configuré." };
   let res: Response;
   try {
     res = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Lovable-API-Key": key, "X-Lovable-AIG-SDK": "fetch" },
+      headers: {
+        "Content-Type": "application/json",
+        "Lovable-API-Key": key,
+        "X-Lovable-AIG-SDK": "fetch",
+      },
       body: JSON.stringify({
         model: MODEL,
         stream: true,
@@ -21,7 +27,11 @@ async function callResponses(body: Record<string, unknown>): Promise<AiResult<st
       }),
     });
   } catch {
-    return { ok: false, code: "network", message: "Service d'analyse injoignable. Vérifiez votre connexion." };
+    return {
+      ok: false,
+      code: "network",
+      message: "Service d'analyse injoignable. Vérifiez votre connexion.",
+    };
   }
   if (!res.ok) {
     let msg = "";
@@ -38,7 +48,12 @@ async function callResponses(body: Record<string, unknown>): Promise<AiResult<st
       403: "L'analyse est bloquée pour cet espace (autorisation ou limite).",
       429: "Trop de demandes, réessayez dans un instant.",
     };
-    return { ok: false, code: String(res.status), message: map[res.status] ?? `Service d'analyse indisponible (${res.status}).${msg ? " " + msg : ""}` };
+    return {
+      ok: false,
+      code: String(res.status),
+      message:
+        map[res.status] ?? `Service d'analyse indisponible (${res.status}).${msg ? " " + msg : ""}`,
+    };
   }
   const reader = res.body?.getReader();
   if (!reader) return { ok: false, code: "empty", message: "Réponse vide du service d'analyse." };
@@ -60,19 +75,51 @@ async function callResponses(body: Record<string, unknown>): Promise<AiResult<st
         const ev = JSON.parse(payload);
         if (ev.type === "response.output_text.delta") text += ev.delta ?? "";
         else if (ev.type === "response.refusal.delta") failed = "refus";
-        else if (ev.type === "error" || ev.type === "response.failed") failed = ev.error?.message ?? ev.response?.error?.message ?? "erreur";
+        else if (ev.type === "error" || ev.type === "response.failed")
+          failed = ev.error?.message ?? ev.response?.error?.message ?? "erreur";
       } catch {
         /* ignore partial */
       }
     }
   }
-  if (failed === "refus") return { ok: false, code: "refusal", message: "Le service d'analyse a refusé cette image." };
-  if (failed) return { ok: false, code: "failed", message: "L'analyse a échoué. Vous pouvez saisir la fiche vous-même." };
-  if (!text.trim()) return { ok: false, code: "empty", message: "L'analyse n'a rien renvoyé. Saisissez la fiche vous-même." };
+  if (failed === "refus")
+    return { ok: false, code: "refusal", message: "Le service d'analyse a refusé cette image." };
+  if (failed)
+    return {
+      ok: false,
+      code: "failed",
+      message: "L'analyse a échoué. Vous pouvez saisir la fiche vous-même.",
+    };
+  if (!text.trim())
+    return {
+      ok: false,
+      code: "empty",
+      message: "L'analyse n'a rien renvoyé. Saisissez la fiche vous-même.",
+    };
   return { ok: true, data: text };
 }
 
-const COLOR_ENUM = ["noir","blanc","ecru","gris","beige","camel","marron","marine","bleu","denim","kaki","vert","rouge","bordeaux","rose","orange","jaune","violet","multicolore"];
+const COLOR_ENUM = [
+  "noir",
+  "blanc",
+  "ecru",
+  "gris",
+  "beige",
+  "camel",
+  "marron",
+  "marine",
+  "bleu",
+  "denim",
+  "kaki",
+  "vert",
+  "rouge",
+  "bordeaux",
+  "rose",
+  "orange",
+  "jaune",
+  "violet",
+  "multicolore",
+];
 
 export interface GarmentSuggestion {
   isGarment: boolean;
@@ -87,7 +134,8 @@ export interface GarmentSuggestion {
 
 export const analyzeGarment = createServerFn({ method: "POST" })
   .inputValidator((input: { image: string }) => {
-    if (typeof input?.image !== "string" || !input.image.startsWith("data:image/")) throw new Error("Image invalide");
+    if (typeof input?.image !== "string" || !input.image.startsWith("data:image/"))
+      throw new Error("Image invalide");
     if (input.image.length > 4_000_000) throw new Error("Image trop lourde");
     return input;
   })
@@ -95,15 +143,44 @@ export const analyzeGarment = createServerFn({ method: "POST" })
     const schema = {
       type: "object",
       additionalProperties: false,
-      required: ["isGarment", "name", "category", "colors", "pattern", "style", "seasons", "confidence"],
+      required: [
+        "isGarment",
+        "name",
+        "category",
+        "colors",
+        "pattern",
+        "style",
+        "seasons",
+        "confidence",
+      ],
       properties: {
         isGarment: { type: "boolean" },
         name: { type: "string" },
-        category: { type: "string", enum: ["haut", "bas", "chaussures", "veste", "accessoire", "robe"] },
+        category: {
+          type: "string",
+          enum: ["haut", "bas", "chaussures", "veste", "accessoire", "robe"],
+        },
         colors: { type: "array", items: { type: "string", enum: COLOR_ENUM } },
-        pattern: { type: "string", enum: ["uni", "rayé", "carreaux", "fleuri", "pois", "imprimé", "texturé"] },
-        style: { type: "string", enum: ["decontracte", "classique", "chic", "minimaliste", "sport", "boheme", "streetwear"] },
-        seasons: { type: "array", items: { type: "string", enum: ["printemps", "ete", "automne", "hiver"] } },
+        pattern: {
+          type: "string",
+          enum: ["uni", "rayé", "carreaux", "fleuri", "pois", "imprimé", "texturé"],
+        },
+        style: {
+          type: "string",
+          enum: [
+            "decontracte",
+            "classique",
+            "chic",
+            "minimaliste",
+            "sport",
+            "boheme",
+            "streetwear",
+          ],
+        },
+        seasons: {
+          type: "array",
+          items: { type: "string", enum: ["printemps", "ete", "automne", "hiver"] },
+        },
         confidence: { type: "string", enum: ["faible", "moyenne", "elevee"] },
       },
     };
@@ -125,7 +202,11 @@ export const analyzeGarment = createServerFn({ method: "POST" })
     try {
       return { ok: true, data: JSON.parse(r.data) as GarmentSuggestion };
     } catch {
-      return { ok: false, code: "parse", message: "Réponse d'analyse illisible. Saisissez la fiche vous-même." };
+      return {
+        ok: false,
+        code: "parse",
+        message: "Réponse d'analyse illisible. Saisissez la fiche vous-même.",
+      };
     }
   });
 
@@ -140,10 +221,28 @@ export const adviseOutfits = createServerFn({ method: "POST" })
       style: string;
       temperature: number;
       level: string;
-      outfits: { pieces: { category: string; name: string; colors: string[]; pattern: string; style: string }[] }[];
+      weather?: AdviceWeather;
+      outfits: {
+        pieces: {
+          category: string;
+          name: string;
+          colors: string[];
+          pattern: string;
+          style: string;
+        }[];
+      }[];
     }) => {
-      if (!Array.isArray(input?.outfits) || input.outfits.length > 3) throw new Error("Entrée invalide");
-      return input;
+      if (!Array.isArray(input?.outfits) || input.outfits.length > 3)
+        throw new Error("Entrée invalide");
+      const weather = sanitizeAdviceWeather(input.weather);
+      const base = {
+        occasion: input.occasion,
+        style: input.style,
+        temperature: input.temperature,
+        level: input.level,
+        outfits: input.outfits,
+      };
+      return weather ? { ...base, weather } : base;
     },
   )
   .handler(async ({ data }): Promise<AiResult<OutfitAdvice>> => {
@@ -158,14 +257,18 @@ export const adviseOutfits = createServerFn({ method: "POST" })
             type: "object",
             additionalProperties: false,
             required: ["index", "title", "text"],
-            properties: { index: { type: "integer" }, title: { type: "string" }, text: { type: "string" } },
+            properties: {
+              index: { type: "integer" },
+              title: { type: "string" },
+              text: { type: "string" },
+            },
           },
         },
       },
     };
     const r = await callResponses({
       instructions:
-        "Tu es styliste. Pour chaque tenue fournie (composée UNIQUEMENT des pièces listées, n'en ajoute aucune), donne un titre évocateur (3-5 mots) et 2-3 phrases en français : harmonie des couleurs, proportions, comment la porter pour l'occasion. Ton chaleureux, inclusif, sans genre imposé, sans conseiller d'acheter.",
+        "Tu es styliste. Pour chaque tenue fournie (composée UNIQUEMENT des pièces listées, n'en ajoute aucune), donne un titre évocateur (3-5 mots) et 2-3 phrases en français : harmonie des couleurs, proportions, comment la porter pour l'occasion. Si une météo est jointe (pluie, neige, vent, ressenti), ajoute un conseil de port concret sans inventer de vêtement absent. Ton chaleureux, inclusif, sans genre imposé, sans conseiller d'acheter.",
       input: [{ role: "user", content: [{ type: "input_text", text: JSON.stringify(data) }] }],
       text: { format: { type: "json_schema", name: "advice", strict: true, schema } },
     });
