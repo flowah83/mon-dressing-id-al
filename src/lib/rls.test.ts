@@ -38,10 +38,16 @@ describe("règles d'accès de la sauvegarde", () => {
   });
 
   it("range les photos dans un bac privé, au nom de la personne", () => {
-    expect(sql).toContain(`'${PHOTO_BUCKET}', '${PHOTO_BUCKET}', false`);
-    expect(sql).toContain("public = false");
-    expect(sql).toContain("(storage.foldername(name))[1] = auth.uid()::text");
-    expect(lower).not.toContain("bucket public");
+    // Le bac lui-même est créé privé par la plateforme (public = false, 5 Mo) :
+    // le SQL ne peut que garantir que chaque lecture reste dans le dossier du propriétaire.
+    const policies = (sql.match(/create policy[^;]+;/g) ?? []).filter((block) => block.includes("storage.objects"));
+    expect(policies.length).toBe(4);
+    for (const policy of policies) {
+      expect(policy).toContain(`bucket_id = '${PHOTO_BUCKET}'`);
+      expect(policy).toContain("(storage.foldername(name))[1] = auth.uid()::text");
+      expect(policy.toLowerCase()).not.toContain("to anon");
+      expect(policy.toLowerCase()).not.toContain("using (true)");
+    }
   });
 
   it("reprend les mêmes catégories, couleurs, motifs et styles que l'application", () => {
