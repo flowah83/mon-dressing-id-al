@@ -232,13 +232,6 @@ revoke all on function public.consume_ai_quota(text) from public;
 revoke all on function public.consume_ai_quota(text) from anon;
 grant execute on function public.consume_ai_quota(text) to authenticated;
 
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('garment-photos', 'garment-photos', false, 5242880, array['image/jpeg', 'image/png', 'image/webp']::text[])
-on conflict (id) do update
-set public = false,
-    file_size_limit = excluded.file_size_limit,
-    allowed_mime_types = excluded.allowed_mime_types;
-
 drop policy if exists vestiaire_garment_photos_select on storage.objects;
 create policy vestiaire_garment_photos_select on storage.objects
   for select to authenticated
