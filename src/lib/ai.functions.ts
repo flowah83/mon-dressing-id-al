@@ -249,7 +249,7 @@ export const adviseOutfits = createServerFn({ method: "POST" })
     };
     const r = await callResponses({
       instructions:
-        "Tu es styliste. Pour chaque tenue fournie (composée UNIQUEMENT des pièces listées, n'en ajoute aucune), donne un titre évocateur (3-5 mots) et 2-3 phrases en français : harmonie des couleurs, proportions, comment la porter pour l'occasion. Si une météo est jointe (pluie, neige, vent, ressenti), ajoute un conseil de port concret sans inventer de vêtement absent. Ton chaleureux, inclusif, sans genre imposé, sans conseiller d'acheter.",
+        "Tu es styliste. Pour chaque tenue fournie (composée UNIQUEMENT des pièces listées, n'en ajoute aucune), donne un titre évocateur (3-5 mots) et 2-3 phrases en français : harmonie des couleurs, proportions, comment la porter pour l'occasion. Si une météo est jointe (pluie, neige, vent, ressenti), ajoute un conseil de port concret sans inventer de vêtement absent. Le ressenti guide la température de la tenue. Ton chaleureux, inclusif, sans genre imposé, sans conseiller d'acheter.",
       input: [
         { role: "user", content: [{ type: "input_text", text: JSON.stringify(screened.data) }] },
       ],

@@ -1,6 +1,16 @@
-import { Link, useLocation } from "@tanstack/react-router";
-import { Heart, Plus, Shirt, Sparkles, Settings2 } from "lucide-react";
-import type { ReactNode } from "react";
+import { Link, useLocation, useRouter } from "@tanstack/react-router";
+import { ChevronLeft, Heart, Layers, Plus, Settings2, Shirt, Sparkles } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/lib/account";
 import { cn } from "@/lib/utils";
 import { useDemoControls, useImageSrc, useMode } from "@/lib/store";
@@ -8,20 +18,39 @@ import { COLORS, catLabel, colorInfo, type Garment } from "@/lib/wardrobe";
 
 export function BottomNav() {
   const { pathname } = useLocation();
-  const item = (to: "/" | "/conseiller" | "/favoris", label: string, Icon: typeof Shirt) => {
-    const active = to === "/" ? pathname === "/" || pathname.startsWith("/piece") : pathname.startsWith(to);
+  const item = (
+    to: "/" | "/conseiller" | "/favoris" | "/composer",
+    label: string,
+    Icon: typeof Shirt,
+  ) => {
+    const active =
+      to === "/" ? pathname === "/" || pathname.startsWith("/piece") : pathname.startsWith(to);
     return (
-      <Link to={to} className={cn("flex min-h-14 flex-1 flex-col items-center justify-center gap-1 text-[0.7rem] font-medium", active ? "text-primary" : "text-muted-foreground")}>
+      <Link
+        to={to}
+        className={cn(
+          "flex min-h-14 flex-1 flex-col items-center justify-center gap-1 text-[0.7rem] font-medium",
+          active ? "text-primary" : "text-muted-foreground",
+        )}
+      >
         <Icon className="size-5" strokeWidth={active ? 2.2 : 1.6} />
         {label}
       </Link>
     );
   };
   return (
-    <nav aria-label="Navigation principale" className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur pb-safe md:inset-x-auto md:left-1/2 md:bottom-5 md:w-[30rem] md:-translate-x-1/2 md:rounded-full md:border md:pb-0 md:shadow-lift">
-      <div className="mx-auto flex max-w-lg items-end px-2">
+    <nav
+      aria-label="Navigation principale"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur pb-safe md:inset-x-auto md:left-1/2 md:bottom-5 md:w-[36rem] md:-translate-x-1/2 md:rounded-full md:border md:pb-0 md:shadow-lift"
+    >
+      <div className="mx-auto flex max-w-lg items-end px-1">
         {item("/", "Dressing", Shirt)}
-        <Link to="/ajouter" aria-label="Ajouter une pièce" className="flex flex-1 flex-col items-center justify-center gap-1 pb-1 text-[0.7rem] font-medium text-muted-foreground">
+        {item("/composer", "Composer", Layers)}
+        <Link
+          to="/ajouter"
+          aria-label="Ajouter une pièce"
+          className="flex min-h-14 flex-1 flex-col items-center justify-center gap-1 pb-1 text-[0.7rem] font-medium text-muted-foreground"
+        >
           <span className="-mt-6 grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-lift md:mt-0 md:size-12">
             <Plus className="size-6" />
           </span>
@@ -34,21 +63,59 @@ export function BottomNav() {
   );
 }
 
-export function PageHeader({ eyebrow, title, action }: { eyebrow?: string; title: string; action?: ReactNode }) {
+export function BackButton() {
+  const router = useRouter();
   return (
-    <header className="flex items-end justify-between gap-4 pt-safe pb-4">
-      <div className="min-w-0">
-        {eyebrow && <p className="eyebrow mb-1">{eyebrow}</p>}
-        <h1 className="text-4xl leading-none md:text-5xl">{title}</h1>
+    <button
+      type="button"
+      onClick={() => {
+        if (typeof window !== "undefined" && window.history.length > 1) router.history.back();
+        else void router.navigate({ to: "/" });
+      }}
+      className="-ml-2 inline-flex min-h-11 items-center gap-0.5 pr-3 text-sm font-medium"
+    >
+      <ChevronLeft className="size-5" />
+      Retour
+    </button>
+  );
+}
+
+export function PageHeader({
+  eyebrow,
+  title,
+  action,
+  back,
+  compact,
+}: {
+  eyebrow?: string;
+  title: string;
+  action?: ReactNode;
+  back?: boolean;
+  compact?: boolean;
+}) {
+  return (
+    <header className="pt-safe pb-4">
+      {back && <BackButton />}
+      <div className="flex items-end justify-between gap-4">
+        <div className="min-w-0">
+          {eyebrow && <p className="eyebrow mb-1">{eyebrow}</p>}
+          <h1 className={compact ? "text-3xl leading-none" : "text-4xl leading-none md:text-5xl"}>
+            {title}
+          </h1>
+        </div>
+        {action}
       </div>
-      {action}
     </header>
   );
 }
 
 export function SettingsLink() {
   return (
-    <Link to="/reglages" aria-label="Réglages, compte et sauvegarde" className="grid size-11 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground">
+    <Link
+      to="/reglages"
+      aria-label="Réglages, compte et sauvegarde"
+      className="grid size-11 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground"
+    >
       <Settings2 className="size-5" />
     </Link>
   );
@@ -61,26 +128,74 @@ export function Page({ children }: { children: ReactNode }) {
 export function DemoBanner() {
   const { mode } = useMode();
   const demo = useDemoControls();
+  const [confirmClear, setConfirmClear] = useState(false);
   if (mode !== "demo") return null;
   return (
     <div className="sticky top-0 z-30 bg-demo text-demo-foreground">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-5 pt-safe pb-2 text-sm md:px-8">
         <span className="font-semibold">Mode démonstration · pièces d'exemple</span>
-        <span className="flex gap-3">
-          <button className="min-h-9 underline underline-offset-4" onClick={() => demo.exit()}>Mon dressing</button>
-          <button className="min-h-9 underline underline-offset-4" onClick={() => demo.clear()}>Effacer la démo</button>
+        <span className="flex gap-1">
+          <button
+            type="button"
+            className="min-h-11 px-2 underline underline-offset-4"
+            onClick={() => demo.exit()}
+          >
+            Mon dressing
+          </button>
+          <button
+            type="button"
+            className="min-h-11 px-2 underline underline-offset-4"
+            onClick={() => setConfirmClear(true)}
+          >
+            Effacer la démo
+          </button>
         </span>
       </div>
+      <AlertDialog open={confirmClear} onOpenChange={setConfirmClear}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display text-3xl font-medium">
+              Effacer la démonstration ?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base text-foreground">
+              Les pièces d'exemple seront supprimées de cet appareil. Mon dressing, vos photos et
+              vos tenues ne sont pas touchés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="min-h-11">Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="min-h-11 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => void demo.clear()}
+            >
+              Effacer la démo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
-export function GarmentImage({ g, className, eager }: { g: Pick<Garment, "image" | "imageUrl" | "name">; className?: string; eager?: boolean }) {
+export function GarmentImage({
+  g,
+  className,
+  eager,
+}: {
+  g: Pick<Garment, "image" | "imageUrl" | "name">;
+  className?: string;
+  eager?: boolean;
+}) {
   const src = useImageSrc(g);
   return (
     <div className={cn("overflow-hidden bg-photo", className)}>
       {src ? (
-        <img src={src} alt={g.name} loading={eager ? "eager" : "lazy"} className="h-full w-full object-cover" />
+        <img
+          src={src}
+          alt={g.name}
+          loading={eager ? "eager" : "lazy"}
+          className="h-full w-full object-cover"
+        />
       ) : (
         <div className="h-full w-full animate-pulse bg-muted" />
       )}
@@ -94,7 +209,10 @@ export function Swatch({ color, size = "sm" }: { color: string; size?: "sm" | "m
   return (
     <span
       title={c?.label ?? color}
-      className={cn("inline-block shrink-0 rounded-full border border-border", size === "sm" ? "size-3.5" : "size-6")}
+      className={cn(
+        "inline-block shrink-0 rounded-full border border-border",
+        size === "sm" ? "size-3.5" : "size-6",
+      )}
       style={{ background: bg }}
     />
   );
@@ -104,18 +222,30 @@ export function GarmentCard({ g }: { g: Garment }) {
   return (
     <Link to="/piece/$id" params={{ id: g.id }} className="group block">
       <div className="relative">
-        <GarmentImage g={g} className={cn("aspect-[4/5] rounded-2xl transition-shadow group-hover:shadow-lift", !g.available && "opacity-50")} />
+        <GarmentImage
+          g={g}
+          className={cn(
+            "aspect-[4/5] rounded-2xl transition-shadow group-hover:shadow-lift",
+            !g.available && "opacity-50",
+          )}
+        />
         {g.favorite && (
           <span className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-card/90 text-primary">
             <Heart className="size-4 fill-current" />
           </span>
         )}
-        {!g.available && <span className="absolute left-2 top-2 rounded-full bg-card/90 px-2.5 py-1 text-xs font-medium">Au lavage</span>}
+        {!g.available && (
+          <span className="absolute left-2 top-2 rounded-full bg-card/90 px-2.5 py-1 text-xs font-medium">
+            Au lavage
+          </span>
+        )}
       </div>
       <div className="mt-2 px-0.5">
         <p className="truncate text-sm font-medium">{g.name}</p>
         <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-          {g.colors.slice(0, 3).map((c) => <Swatch key={c} color={c} />)}
+          {g.colors.slice(0, 3).map((c) => (
+            <Swatch key={c} color={c} />
+          ))}
           <span className="truncate">{catLabel(g.category)}</span>
         </div>
       </div>
@@ -123,7 +253,13 @@ export function GarmentCard({ g }: { g: Garment }) {
   );
 }
 
-export function ColorPicker({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+export function ColorPicker({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (v: string[]) => void;
+}) {
   return (
     <div className="flex flex-wrap gap-2">
       {COLORS.map((c) => {
@@ -149,10 +285,18 @@ export function Collage({ items, className }: { items: Garment[]; className?: st
   if (!items.length) return <div className={cn("aspect-square rounded-2xl bg-muted", className)} />;
   const [first, ...rest] = items;
   return (
-    <div className={cn("grid aspect-square grid-cols-2 gap-1.5 rounded-2xl bg-photo p-1.5", className)}>
-      <GarmentImage g={first!} className={cn("rounded-xl", rest.length ? "row-span-2" : "col-span-2 row-span-2")} />
+    <div
+      className={cn("grid aspect-square grid-cols-2 gap-1.5 rounded-2xl bg-photo p-1.5", className)}
+    >
+      <GarmentImage
+        g={first!}
+        className={cn("rounded-xl", rest.length ? "row-span-2" : "col-span-2 row-span-2")}
+      />
       {rest.length > 0 && (
-        <div className={cn("grid gap-1.5", rest.length > 2 ? "grid-cols-2" : "grid-cols-1")} style={{ gridRow: "span 2" }}>
+        <div
+          className={cn("grid gap-1.5", rest.length > 2 ? "grid-cols-2" : "grid-cols-1")}
+          style={{ gridRow: "span 2" }}
+        >
           {rest.slice(0, 4).map((g) => (
             <GarmentImage key={g.id} g={g} className="min-h-0 rounded-xl" />
           ))}
@@ -162,7 +306,15 @@ export function Collage({ items, className }: { items: Garment[]; className?: st
   );
 }
 
-export function EmptyState({ title, text, children }: { title: string; text: string; children?: ReactNode }) {
+export function EmptyState({
+  title,
+  text,
+  children,
+}: {
+  title: string;
+  text: string;
+  children?: ReactNode;
+}) {
   return (
     <div className="rounded-3xl border border-dashed border-border bg-card px-6 py-12 text-center">
       <h2 className="text-3xl">{title}</h2>
@@ -174,23 +326,44 @@ export function EmptyState({ title, text, children }: { title: string; text: str
 
 export function LocalNotice() {
   const auth = useAuth();
-  if (!auth.ready) return <p className="text-xs text-muted-foreground">Enregistré sur cet appareil.</p>;
-  if (auth.user) return <p className="text-xs text-muted-foreground">Copie sur cet appareil, sauvegardée dans votre compte privé.</p>;
+  if (!auth.ready)
+    return <p className="text-xs text-muted-foreground">Enregistré sur cet appareil.</p>;
+  if (auth.user)
+    return (
+      <p className="text-xs text-muted-foreground">
+        Copie sur cet appareil, sauvegardée dans votre compte privé.
+      </p>
+    );
   if (auth.configured) {
     return (
       <p className="text-xs text-muted-foreground">
-        Enregistré sur cet appareil. <Link to="/compte" className="underline underline-offset-4">Créer un compte</Link> pour une copie privée en ligne.
+        Enregistré sur cet appareil.{" "}
+        <Link
+          to="/compte"
+          className="inline-flex min-h-11 items-center underline underline-offset-4"
+        >
+          Créer un compte
+        </Link>{" "}
+        pour une copie privée en ligne.
       </p>
     );
   }
-  return <p className="text-xs text-muted-foreground">Enregistré sur cet appareil uniquement · pensez à exporter une sauvegarde.</p>;
+  return (
+    <p className="text-xs text-muted-foreground">
+      Enregistré sur cet appareil uniquement · pensez à exporter une sauvegarde.
+    </p>
+  );
 }
 
 export function SyncLine() {
   const auth = useAuth();
   if (!auth.user) return null;
-  if (auth.syncState === "saving") return <p className="text-sm text-muted-foreground">Sauvegarde en ligne…</p>;
-  if (auth.syncState === "error" && auth.syncMessage) return <p className="text-sm text-destructive">{auth.syncMessage}</p>;
-  if (auth.lastSyncAt) return <p className="text-sm text-muted-foreground">Copie en ligne à jour.</p>;
+  if (auth.syncState === "saving")
+    return <p className="text-sm text-muted-foreground">Sauvegarde en ligne…</p>;
+  if (auth.syncState === "error" && auth.syncMessage)
+    return <p className="text-sm text-destructive">{auth.syncMessage}</p>;
+  if (auth.syncMessage) return <p className="text-sm text-muted-foreground">{auth.syncMessage}</p>;
+  if (auth.lastSyncAt)
+    return <p className="text-sm text-muted-foreground">Copie en ligne à jour.</p>;
   return null;
 }

@@ -73,6 +73,8 @@ describe("carte météo", () => {
       />,
     );
     expect(screen.getByText(/localisation a été refusée/i)).toBeInTheDocument();
+    expect(screen.getByText(/seule la température du curseur/i)).toBeInTheDocument();
+    expect(screen.getByText(/pluie et le vent restent inconnus/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Utiliser ma position" }));
     expect(onRetry).toHaveBeenCalledOnce();
   });

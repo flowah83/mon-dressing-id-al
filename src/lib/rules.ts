@@ -107,7 +107,6 @@ export function generateOutfits(input: AdvisorInput): AdvisorResult {
     if (bottoms.length === 0) missing.push(why("bas", "Un bas"));
     missing.push("ou bien une robe / combinaison");
   }
-
   const precipitation = input.weather?.precipitation ?? "none";
   const windKmh = input.weather?.windKmh ?? 0;
   const wet = precipitation !== "none";
@@ -119,19 +118,17 @@ export function generateOutfits(input: AdvisorInput): AdvisorResult {
       notes.push(`${what} : une veste est proposée pour vous couvrir.`);
     else notes.push(`${what}.`);
   }
-  if (windKmh >= 40) {
+  if (windKmh >= 40)
     notes.push(
       `Le vent atteint environ ${Math.round(windKmh)} km/h : une couche qui coupe le vent sera plus confortable.`,
     );
-  }
   if (missing.length) return { proposals: [], missing, notes };
 
   const needJacket = temperature < 16 || wet || windKmh >= 55;
-  if (temperature < 16 && jackets.length === 0) {
+  if (temperature < 16 && jackets.length === 0)
     notes.push(
       `Il fait ${temperature} °C : aucune veste disponible et adaptée, pensez à une couche chaude.`,
     );
-  }
 
   const bases: Garment[][] = [];
   for (const t of tops) for (const b of bottoms) bases.push([t, b]);

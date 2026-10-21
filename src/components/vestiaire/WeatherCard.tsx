@@ -53,21 +53,21 @@ export function WeatherCard({
       )}
 
       {(snapshot || state.phase === "error") && (
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          {manual && snapshot && (
+            <Button type="button" className="min-h-11 w-full sm:w-auto" onClick={onUseForecast}>
+              Revenir au ressenti ({adviceTemperature(snapshot)} °C)
+            </Button>
+          )}
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            className="min-h-11"
             onClick={onRetry}
             disabled={state.phase === "loading"}
           >
             {state.phase === "loading" ? "Mise à jour…" : retryLabel}
           </Button>
-          {manual && snapshot && (
-            <Button type="button" variant="outline" size="sm" onClick={onUseForecast}>
-              Revenir au ressenti ({adviceTemperature(snapshot)} °C)
-            </Button>
-          )}
         </div>
       )}
     </section>

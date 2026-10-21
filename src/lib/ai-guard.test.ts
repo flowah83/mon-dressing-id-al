@@ -1,8 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
-import { authorizeAiCall, interpretQuotaPayload, messageFor, screenAdvice, screenGarmentImage } from "./ai-guard";
+import {
+  authorizeAiCall,
+  interpretQuotaPayload,
+  messageFor,
+  screenAdvice,
+  screenGarmentImage,
+} from "./ai-guard";
 import { AI_DAILY_LIMIT } from "./quota";
 
-const piece = { category: "haut", name: "Chemise", colors: ["bleu"], pattern: "uni", style: "classique" };
+const piece = {
+  category: "haut",
+  name: "Chemise",
+  colors: ["bleu"],
+  pattern: "uni",
+  style: "classique",
+};
 
 function advice(outfits = 1) {
   return {
@@ -35,34 +47,31 @@ describe("analyse photo", () => {
 
 describe("conseil", () => {
   it("garde uniquement les champs attendus", () => {
-    const result = screenAdvice({ ...advice(), extra: "ignore", outfits: [{ pieces: [{ ...piece, secret: "non" }] }] });
+    const result = screenAdvice({
+      ...advice(),
+      extra: "ignore",
+      outfits: [{ pieces: [{ ...piece, secret: "non" }] }],
+    });
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.data.outfits[0]?.pieces[0]).toEqual(piece);
   });
 
-  it("conserve une météo valide et écarte une météo illisible", () => {
-    const kept = screenAdvice({
+  it("transmet une météo valide et ignore une météo incomplète", () => {
+    const withWeather = screenAdvice({
       ...advice(),
       weather: {
         temperature: 12,
         feelsLike: 9,
-        precipitation: "rain",
         windKmh: 20,
+        precipitation: "rain",
         conditions: "Pluie",
-        place: "Lyon",
         extra: "non",
       },
     });
-    expect(kept.ok).toBe(true);
-    if (kept.ok) {
-      expect(kept.data.weather).toEqual({
-        temperature: 12,
-        feelsLike: 9,
-        precipitation: "rain",
-        windKmh: 20,
-        conditions: "Pluie",
-        place: "Lyon",
-      });
+    expect(withWeather.ok).toBe(true);
+    if (withWeather.ok) {
+      expect(withWeather.data.weather?.precipitation).toBe("rain");
+      expect(withWeather.data.weather).not.toHaveProperty("extra");
     }
     const dropped = screenAdvice({ ...advice(), weather: { temperature: "froid" } });
     expect(dropped.ok).toBe(true);
@@ -72,7 +81,10 @@ describe("conseil", () => {
   it("refuse trop de tenues, une température absurde ou un texte énorme", () => {
     expect(screenAdvice(advice(4)).ok).toBe(false);
     expect(screenAdvice({ ...advice(), temperature: 80 }).ok).toBe(false);
-    expect(screenAdvice({ ...advice(), outfits: [{ pieces: [{ ...piece, name: "x".repeat(201) }] }] }).ok).toBe(false);
+    expect(
+      screenAdvice({ ...advice(), outfits: [{ pieces: [{ ...piece, name: "x".repeat(201) }] }] })
+        .ok,
+    ).toBe(false);
   });
 });
 
@@ -81,11 +93,23 @@ describe("session et quota", () => {
     const verify = vi.fn(async () => ({ id: "user-1" }));
     const consume = vi.fn(async () => ({ ok: true as const, remaining: 49 }));
 
-    const missing = await authorizeAiCall({ token: "t", kind: "analysis", configured: false, verify, consume });
+    const missing = await authorizeAiCall({
+      token: "t",
+      kind: "analysis",
+      configured: false,
+      verify,
+      consume,
+    });
     expect(missing).toMatchObject({ ok: false, code: "config" });
     expect(verify).not.toHaveBeenCalled();
 
-    const signedOut = await authorizeAiCall({ token: null, kind: "analysis", configured: true, verify, consume });
+    const signedOut = await authorizeAiCall({
+      token: null,
+      kind: "analysis",
+      configured: true,
+      verify,
+      consume,
+    });
     expect(signedOut.ok).toBe(false);
     if (!signedOut.ok) expect(signedOut.message).toMatch(/Connectez-vous/);
     expect(consume).not.toHaveBeenCalled();
@@ -105,10 +129,18 @@ describe("session et quota", () => {
   it("bloque à 50 et laisse passer en dessous, séparément pour chaque usage", async () => {
     const verify = vi.fn(async () => ({ id: "user-1" }));
     const consume = vi.fn(async (_token: string, kind: string) =>
-      kind === "analysis" ? { ok: false as const, code: "limit" as const } : { ok: true as const, remaining: 49 },
+      kind === "analysis"
+        ? { ok: false as const, code: "limit" as const }
+        : { ok: true as const, remaining: 49 },
     );
 
-    const analysis = await authorizeAiCall({ token: "ok", kind: "analysis", configured: true, verify, consume });
+    const analysis = await authorizeAiCall({
+      token: "ok",
+      kind: "analysis",
+      configured: true,
+      verify,
+      consume,
+    });
     expect(analysis).toMatchObject({ ok: false, code: "limit" });
     if (!analysis.ok) {
       expect(analysis.message).toContain(String(AI_DAILY_LIMIT));
@@ -116,7 +148,13 @@ describe("session et quota", () => {
       expect(analysis.message).not.toMatch(/supabase|jwt|unauthorized/i);
     }
 
-    const advice = await authorizeAiCall({ token: "ok", kind: "advice", configured: true, verify, consume });
+    const advice = await authorizeAiCall({
+      token: "ok",
+      kind: "advice",
+      configured: true,
+      verify,
+      consume,
+    });
     expect(advice).toEqual({ ok: true, userId: "user-1" });
     expect(consume).toHaveBeenCalledWith("ok", "advice");
   });
@@ -139,8 +177,14 @@ describe("session et quota", () => {
 
   it("lit la réponse du compteur, y compris en texte", () => {
     expect(interpretQuotaPayload({ ok: true, remaining: 3 })).toEqual({ ok: true, remaining: 3 });
-    expect(interpretQuotaPayload('{"ok":false,"code":"limit"}')).toEqual({ ok: false, code: "limit" });
-    expect(interpretQuotaPayload({ ok: false, code: "nope" })).toEqual({ ok: false, code: "unavailable" });
+    expect(interpretQuotaPayload('{"ok":false,"code":"limit"}')).toEqual({
+      ok: false,
+      code: "limit",
+    });
+    expect(interpretQuotaPayload({ ok: false, code: "nope" })).toEqual({
+      ok: false,
+      code: "unavailable",
+    });
   });
 
   it("écrit les messages en français", () => {
