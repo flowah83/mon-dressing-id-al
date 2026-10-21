@@ -1,6 +1,5 @@
-import { getSupabase } from "@/integrations/supabase/client";
 import * as db from "./db";
-import { readCacheOwner } from "./cloud";
+import { getSupabase, readCacheOwner } from "./cloud";
 import { PHOTO_BUCKET, photoObjectPath, photoOwnedBy, planAccountSync, type SyncItem } from "./sync-plan";
 import type { Garment, Outfit } from "./wardrobe";
 import {
