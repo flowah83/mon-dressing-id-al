@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { AccountProvider } from "@/lib/account";
 import { ModeProvider } from "@/lib/store";
 import { BottomNav, DemoBanner } from "@/components/vestiaire/ui";
 import { Toaster } from "@/components/ui/sonner";
@@ -131,12 +132,14 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ModeProvider>
-        <DemoBanner />
-        <Outlet />
-        <BottomNav />
-        <Toaster position="top-center" />
-      </ModeProvider>
+      <AccountProvider>
+        <ModeProvider>
+          <DemoBanner />
+          <Outlet />
+          <BottomNav />
+          <Toaster position="top-center" />
+        </ModeProvider>
+      </AccountProvider>
     </QueryClientProvider>
   );
 }

@@ -6,7 +6,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { GarmentForm, emptyFields, type GarmentFields } from "@/components/vestiaire/GarmentForm";
 import { LocalNotice, Page, PageHeader } from "@/components/vestiaire/ui";
+import { useAuth } from "@/lib/account";
 import { analyzeGarment } from "@/lib/ai.functions";
+import { ensureAccessCookie } from "@/lib/cloud";
 import { uid } from "@/lib/db";
 import { blobToDataUrl, compressImage } from "@/lib/image";
 import { useMode, useSaveGarment } from "@/lib/store";
@@ -28,6 +30,7 @@ type Status = "idle" | "compress" | "analyse" | "ready" | "saving";
 
 function Ajouter() {
   const { mode } = useMode();
+  const auth = useAuth();
   const navigate = useNavigate();
   const analyze = useServerFn(analyzeGarment);
   const save = useSaveGarment();
@@ -64,6 +67,7 @@ function Ajouter() {
     setStatus("analyse");
     try {
       const small = await compressImage(b, 900, 0.8);
+      await ensureAccessCookie();
       const r = await analyze({ data: { image: await blobToDataUrl(small) } });
       if (!r.ok) {
         setAiState({ kind: "error", message: r.message });
@@ -115,6 +119,13 @@ function Ajouter() {
   return (
     <Page>
       <PageHeader eyebrow={mode === "demo" ? "Ajout à la démonstration" : "Nouvelle pièce"} title="Ajouter" />
+      {auth.ready && !auth.user && (
+        <p className="mb-4 text-sm text-muted-foreground">
+          {auth.configured
+            ? "Pour l'analyse automatique, connectez-vous dans Réglages. Sans compte, la fiche se remplit à la main."
+            : "L'analyse automatique n'est pas encore activée. Vous pourrez remplir la fiche vous-même."}
+        </p>
+      )}
       <input ref={camRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ""; }} />
       <input ref={galRef} type="file" accept="image/*" className="hidden" onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ""; }} />
 

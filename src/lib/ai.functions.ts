@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { sanitizeAdviceWeather, type AdviceWeather } from "@/lib/weather";
+import { gateAiCall } from "./ai-access.server";
+import { screenAdvice, screenGarmentImage } from "./ai-guard";
 
 const MODEL = "openai/gpt-6-astra";
 
@@ -133,13 +134,15 @@ export interface GarmentSuggestion {
 }
 
 export const analyzeGarment = createServerFn({ method: "POST" })
-  .inputValidator((input: { image: string }) => {
-    if (typeof input?.image !== "string" || !input.image.startsWith("data:image/"))
-      throw new Error("Image invalide");
-    if (input.image.length > 4_000_000) throw new Error("Image trop lourde");
-    return input;
+  .inputValidator((input: unknown) => {
+    if (!input || typeof input !== "object" || !("image" in input)) return { image: "" as unknown };
+    return { image: (input as { image: unknown }).image };
   })
   .handler(async ({ data }): Promise<AiResult<GarmentSuggestion>> => {
+    const image = screenGarmentImage(data.image);
+    if (!image.ok) return image;
+    const gate = await gateAiCall("analysis");
+    if (!gate.ok) return gate;
     const schema = {
       type: "object",
       additionalProperties: false,
@@ -192,7 +195,7 @@ export const analyzeGarment = createServerFn({ method: "POST" })
           role: "user",
           content: [
             { type: "input_text", text: "Analyse cette pièce." },
-            { type: "input_image", image_url: data.image },
+            { type: "input_image", image_url: image.image },
           ],
         },
       ],
@@ -215,37 +218,15 @@ export interface OutfitAdvice {
 }
 
 export const adviseOutfits = createServerFn({ method: "POST" })
-  .inputValidator(
-    (input: {
-      occasion: string;
-      style: string;
-      temperature: number;
-      level: string;
-      weather?: AdviceWeather;
-      outfits: {
-        pieces: {
-          category: string;
-          name: string;
-          colors: string[];
-          pattern: string;
-          style: string;
-        }[];
-      }[];
-    }) => {
-      if (!Array.isArray(input?.outfits) || input.outfits.length > 3)
-        throw new Error("Entrée invalide");
-      const weather = sanitizeAdviceWeather(input.weather);
-      const base = {
-        occasion: input.occasion,
-        style: input.style,
-        temperature: input.temperature,
-        level: input.level,
-        outfits: input.outfits,
-      };
-      return weather ? { ...base, weather } : base;
-    },
-  )
+  .inputValidator((input: unknown) => {
+    if (!input || typeof input !== "object") throw new Error("Entrée invalide");
+    return input;
+  })
   .handler(async ({ data }): Promise<AiResult<OutfitAdvice>> => {
+    const screened = screenAdvice(data);
+    if (!screened.ok) return screened;
+    const gate = await gateAiCall("advice");
+    if (!gate.ok) return gate;
     const schema = {
       type: "object",
       additionalProperties: false,
@@ -269,7 +250,9 @@ export const adviseOutfits = createServerFn({ method: "POST" })
     const r = await callResponses({
       instructions:
         "Tu es styliste. Pour chaque tenue fournie (composée UNIQUEMENT des pièces listées, n'en ajoute aucune), donne un titre évocateur (3-5 mots) et 2-3 phrases en français : harmonie des couleurs, proportions, comment la porter pour l'occasion. Si une météo est jointe (pluie, neige, vent, ressenti), ajoute un conseil de port concret sans inventer de vêtement absent. Ton chaleureux, inclusif, sans genre imposé, sans conseiller d'acheter.",
-      input: [{ role: "user", content: [{ type: "input_text", text: JSON.stringify(data) }] }],
+      input: [
+        { role: "user", content: [{ type: "input_text", text: JSON.stringify(screened.data) }] },
+      ],
       text: { format: { type: "json_schema", name: "advice", strict: true, schema } },
     });
     if (!r.ok) return r;

@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { WeatherCard } from "@/components/vestiaire/WeatherCard";
 import { Collage, EmptyState, Page, PageHeader } from "@/components/vestiaire/ui";
 import { useAdvisorWeather } from "@/hooks/use-advisor-weather";
+import { useAuth } from "@/lib/account";
 import { adviseOutfits } from "@/lib/ai.functions";
+import { ensureAccessCookie } from "@/lib/cloud";
 import { uid } from "@/lib/db";
 import { generateOutfits, type AdvisorResult } from "@/lib/rules";
 import { useGarments, useMode, useOutfits, useSaveOutfit } from "@/lib/store";
@@ -50,6 +52,7 @@ export const Route = createFileRoute("/conseiller")({
 function Conseiller() {
   const { piece } = Route.useSearch();
   const { mode } = useMode();
+  const auth = useAuth();
   const garments = useGarments();
   const items = garments.data ?? [];
   const { data: outfits = [] } = useOutfits();
@@ -95,6 +98,7 @@ function Conseiller() {
     if (!r.proposals.length) return;
     setAi({ loading: true });
     try {
+      await ensureAccessCookie();
       const a = await advise({
         data: {
           occasion,
@@ -127,6 +131,13 @@ function Conseiller() {
         eyebrow={mode === "demo" ? "Démonstration" : "Avec vos pièces"}
         title="Conseiller"
       />
+      {auth.ready && !auth.user && (
+        <p className="mb-4 text-sm text-muted-foreground">
+          {auth.configured
+            ? "Les tenues sont composées avec vos pièces. Le texte du styliste demande une connexion."
+            : "Le texte du styliste sera disponible avec le compte en ligne. Les règles de style fonctionnent déjà."}
+        </p>
+      )}
       {garments.isPending ? (
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" /> Chargement du dressing…

@@ -26,7 +26,11 @@ export interface Garment {
   notes: string;
   image?: Blob;
   imageUrl?: string;
+  /** Storage path inside the private account bucket, once the piece has been copied online. */
+  imagePath?: string;
   createdAt: number;
+  updatedAt?: number;
+  deletedAt?: number;
 }
 
 export interface Outfit {
@@ -38,6 +42,8 @@ export interface Outfit {
   explanation?: string | undefined;
   feedback?: "like" | "dislike" | undefined;
   createdAt: number;
+  updatedAt?: number;
+  deletedAt?: number;
 }
 
 export const CATEGORIES: { value: Category; label: string; plural: string }[] = [

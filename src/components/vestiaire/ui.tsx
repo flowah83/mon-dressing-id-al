@@ -1,6 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { Heart, Plus, Shirt, Sparkles, Settings2 } from "lucide-react";
 import type { ReactNode } from "react";
+import { useAuth } from "@/lib/account";
 import { cn } from "@/lib/utils";
 import { useDemoControls, useImageSrc, useMode } from "@/lib/store";
 import { COLORS, catLabel, colorInfo, type Garment } from "@/lib/wardrobe";
@@ -47,7 +48,7 @@ export function PageHeader({ eyebrow, title, action }: { eyebrow?: string; title
 
 export function SettingsLink() {
   return (
-    <Link to="/reglages" aria-label="Réglages et sauvegarde" className="grid size-11 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground">
+    <Link to="/reglages" aria-label="Réglages, compte et sauvegarde" className="grid size-11 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground">
       <Settings2 className="size-5" />
     </Link>
   );
@@ -172,5 +173,24 @@ export function EmptyState({ title, text, children }: { title: string; text: str
 }
 
 export function LocalNotice() {
+  const auth = useAuth();
+  if (!auth.ready) return <p className="text-xs text-muted-foreground">Enregistré sur cet appareil.</p>;
+  if (auth.user) return <p className="text-xs text-muted-foreground">Copie sur cet appareil, sauvegardée dans votre compte privé.</p>;
+  if (auth.configured) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        Enregistré sur cet appareil. <Link to="/compte" className="underline underline-offset-4">Créer un compte</Link> pour une copie privée en ligne.
+      </p>
+    );
+  }
   return <p className="text-xs text-muted-foreground">Enregistré sur cet appareil uniquement · pensez à exporter une sauvegarde.</p>;
+}
+
+export function SyncLine() {
+  const auth = useAuth();
+  if (!auth.user) return null;
+  if (auth.syncState === "saving") return <p className="text-sm text-muted-foreground">Sauvegarde en ligne…</p>;
+  if (auth.syncState === "error" && auth.syncMessage) return <p className="text-sm text-destructive">{auth.syncMessage}</p>;
+  if (auth.lastSyncAt) return <p className="text-sm text-muted-foreground">Copie en ligne à jour.</p>;
+  return null;
 }
