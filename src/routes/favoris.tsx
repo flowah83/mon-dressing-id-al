@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { WeekCard } from "@/components/vestiaire/ritual";
 import { Collage, EmptyState, GarmentCard, Page, PageHeader } from "@/components/vestiaire/ui";
 import { useDeleteOutfit, useGarments, useOutfits, useSaveOutfit } from "@/lib/store";
 import type { Outfit } from "@/lib/wardrobe";
@@ -27,11 +28,12 @@ function Favoris() {
   const empty = !isLoading && outfits.length === 0 && favorites.length === 0;
   return (
     <Page>
-      <PageHeader eyebrow="Ce que vous aimez" title="Favoris" />
+      <PageHeader eyebrow="Ce que tu aimes" title="Favoris" />
+      <WeekCard />
       {empty && (
         <EmptyState
           title="Rien en favori"
-          text="Touchez le cœur sur une pièce, ou gardez une tenue proposée par le conseiller."
+          text="Un cœur sur une pièce, ou « Je la porte » sur la tenue du jour."
         >
           <Button asChild>
             <Link to="/conseiller">Ouvrir le conseiller</Link>

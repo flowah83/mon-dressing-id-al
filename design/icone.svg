@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Icône Vestiaire, un cintre">
+  <rect width="1024" height="1024" fill="#F6F3EE"/>
+  <g fill="none" stroke="#1C1917" stroke-width="42" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M470 250c70-48 168-10 150 78-10 48-62 70-100 48"/>
+    <path d="M508 372v52"/>
+    <path d="M250 730 L512 424 L774 730"/>
+    <path d="M250 730 H774"/>
+  </g>
+  <path d="M400 812 H624" fill="none" stroke="#8F3D2B" stroke-width="30" stroke-linecap="round"/>
+</svg>

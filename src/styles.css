@@ -1,12 +1,13 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "./design/tokens.css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Cormorant Garamond", ui-serif, Georgia, serif;
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -40,34 +41,7 @@
   --shadow-lift: var(--shadow-lift);
 }
 
-:root {
-  --radius: 1rem;
-  --background: oklch(0.975 0.012 85);
-  --foreground: oklch(0.27 0.008 260);
-  --card: oklch(0.992 0.007 85);
-  --card-foreground: oklch(0.27 0.008 260);
-  --popover: oklch(0.992 0.007 85);
-  --popover-foreground: oklch(0.27 0.008 260);
-  --primary: oklch(0.46 0.08 122);
-  --primary-foreground: oklch(0.98 0.012 85);
-  --secondary: oklch(0.935 0.018 90);
-  --secondary-foreground: oklch(0.27 0.008 260);
-  --muted: oklch(0.945 0.014 85);
-  --muted-foreground: oklch(0.5 0.01 260);
-  --accent: oklch(0.92 0.035 118);
-  --accent-foreground: oklch(0.33 0.07 122);
-  --destructive: oklch(0.55 0.17 28);
-  --destructive-foreground: oklch(0.98 0.01 85);
-  --demo: oklch(0.88 0.06 75);
-  --demo-foreground: oklch(0.38 0.07 60);
-  --photo: oklch(0.955 0.016 85);
-  --border: oklch(0.895 0.016 85);
-  --input: oklch(0.88 0.016 85);
-  --ring: oklch(0.46 0.08 122);
-  --shadow-soft:
-    0 1px 2px oklch(0.27 0.01 260 / 0.04), 0 8px 24px -12px oklch(0.27 0.01 260 / 0.12);
-  --shadow-lift: 0 18px 40px -18px oklch(0.27 0.01 260 / 0.28);
-}
+/* Couleurs, typos et rayons : src/design/tokens.css */
 
 @layer base {
   * {
@@ -88,7 +62,11 @@
   h3 {
     font-family: var(--font-display);
     font-weight: 500;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
+  }
+  h1 {
+    font-size: var(--text-display);
+    line-height: 1.05;
   }
 }
 
@@ -138,4 +116,194 @@
     outline: 2px solid var(--color-ring);
     outline-offset: 1px;
   }
+}
+
+/* Photos détourées : le vêtement entier, posé sur un fond d'atelier. */
+.garment-photo {
+  background: var(--photo);
+}
+.garment-photo img {
+  object-fit: contain;
+  padding: 6%;
+}
+
+.tabbar {
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+}
+[data-theme="atelier"] .tab-link[data-active="true"] {
+  color: var(--foreground);
+}
+[data-theme="doux"] .tabbar {
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow-lift);
+  padding-bottom: 0.15rem;
+}
+[data-theme="doux"] .chip {
+  border: none;
+  background: var(--card);
+  box-shadow: var(--shadow-soft);
+}
+[data-theme="sombre"] .tabbar {
+  background: #1c1b19f2;
+  border-top: 1px solid #34302c;
+}
+[data-theme="sombre"] .garment-photo img {
+  padding: 8%;
+}
+
+.swipe-card {
+  touch-action: pan-y;
+  transition: transform var(--dur-press) var(--ease-press);
+}
+.swipe-stamp {
+  position: absolute;
+  top: 1.25rem;
+  z-index: 2;
+  border: 2px solid currentColor;
+  border-radius: 0.4rem;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.swipe-like {
+  left: 1rem;
+  color: var(--primary);
+  transform: rotate(-8deg);
+}
+.swipe-next {
+  right: 1rem;
+  color: var(--muted-foreground);
+  transform: rotate(8deg);
+}
+.like-burst {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  z-index: 3;
+  color: var(--primary);
+  font-size: 4rem;
+  line-height: 1;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+.celebrate {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--background) 82%, transparent);
+  text-align: center;
+}
+.celebrate p {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 1;
+}
+.celebrate-mark {
+  width: 4rem;
+  height: 4rem;
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .page-enter {
+    animation: page-in var(--dur-page) var(--ease-out);
+  }
+  .dressing-grid > * {
+    animation: rise var(--dur-reveal) var(--ease-out) both;
+  }
+  .dressing-grid > *:nth-child(2) { animation-delay: 40ms; }
+  .dressing-grid > *:nth-child(3) { animation-delay: 80ms; }
+  .dressing-grid > *:nth-child(4) { animation-delay: 120ms; }
+  .dressing-grid > *:nth-child(5) { animation-delay: 160ms; }
+  .dressing-grid > *:nth-child(6) { animation-delay: 200ms; }
+  .dressing-grid > *:nth-child(7) { animation-delay: 240ms; }
+  .dressing-grid > *:nth-child(8) { animation-delay: 280ms; }
+  .outfit-reveal > * {
+    animation: rise var(--dur-reveal) var(--ease-out) both;
+  }
+  .outfit-reveal > *:nth-child(2) { animation-delay: 80ms; }
+  .press {
+    transition: transform var(--dur-press) var(--ease-press);
+  }
+  .press:active {
+    transform: scale(0.97);
+  }
+  .swipe-leave {
+    animation: swipe-out 220ms var(--ease-press) forwards;
+  }
+  .like-burst {
+    animation: heart-pop var(--dur-success) var(--ease-out);
+  }
+  .celebrate {
+    animation: page-in 280ms var(--ease-out);
+  }
+  .celebrate-mark circle {
+    stroke-dasharray: 164;
+    stroke-dashoffset: 164;
+    animation: draw 500ms var(--ease-out) forwards;
+  }
+  .celebrate-mark path {
+    stroke-dasharray: 40;
+    stroke-dashoffset: 40;
+    animation: draw 320ms var(--ease-out) 280ms forwards;
+  }
+  .tab-plus {
+    transition: transform var(--dur-press) var(--ease-press);
+  }
+  .tab-plus:active {
+    transform: scale(0.94);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .dressing-grid > *,
+  .outfit-reveal > *,
+  .press,
+  .swipe-card,
+  .swipe-leave,
+  .like-burst,
+  .celebrate,
+  .celebrate-mark circle,
+  .celebrate-mark path,
+  .tab-plus {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes swipe-out {
+  to { opacity: 0; transform: translateX(-120%) rotate(-6deg); }
+}
+@keyframes heart-pop {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  40% { opacity: 1; transform: translate(-50%, -50%) scale(1.12); }
+  100% { opacity: 0; transform: translate(-50%, -58%) scale(1); }
+}
+@keyframes draw {
+  to { stroke-dashoffset: 0; }
 }

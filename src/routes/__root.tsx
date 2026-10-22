@@ -93,7 +93,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "theme-color", content: "#f8f4ec" },
+      { name: "theme-color", content: "#f6f3ee" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
@@ -108,7 +108,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Manrope:wght@400;500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700&family=Outfit:wght@400;500;600&family=Source+Sans+3:wght@400;500;600;700&family=Syne:wght@600;700&display=swap",
       },
     ],
   }),
@@ -120,9 +120,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="fr">
+    <html lang="fr" data-theme="atelier">
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var t=new URLSearchParams(location.search).get('theme');if(t==='atelier'||t==='atelier-nuit'||t==='doux'||t==='sombre')document.documentElement.dataset.theme=t;}catch(e){}",
+          }}
+        />
       </head>
       <body>
         {children}
@@ -162,7 +168,7 @@ function RootComponent() {
           <DemoBanner />
           <Outlet />
           <BottomNav />
-          <Toaster position="top-center" />
+          <Toaster position="bottom-center" offset={108} />
         </ModeProvider>
       </AccountProvider>
     </QueryClientProvider>

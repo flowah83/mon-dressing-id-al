@@ -131,7 +131,7 @@ function Piece() {
 
   return (
     <Page>
-      <PageHeader back eyebrow="Fiche" title={g.name} />
+      <PageHeader back compact eyebrow="Fiche" title={g.name} />
       <div className="grid gap-8 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <div>
           <GarmentImage g={g} eager className="aspect-[4/5] rounded-3xl" />

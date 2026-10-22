@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   EmptyState,
   GarmentCard,
+  GarmentImage,
   LocalNotice,
   Page,
   PageHeader,
@@ -85,15 +86,15 @@ function Dressing() {
 
       {ready && !isLoading && !error && items.length === 0 && (
         <EmptyState
-          title={mode === "demo" ? "Démo vide" : "Votre dressing est vide"}
-          text="Photographiez vos vraies pièces une par une. Vestiaire vous aidera ensuite à composer des tenues avec ce que vous avez déjà."
+          title={mode === "demo" ? "L'exemple est vide" : "Ton dressing t'attend"}
+          text="Une photo suffit pour commencer. Ensuite, Vestiaire propose des tenues avec ce que tu as déjà."
         >
           <Button asChild size="lg">
-            <Link to="/ajouter">Ajouter ma première pièce</Link>
+            <Link to="/ajouter">Ajouter une première pièce</Link>
           </Button>
           {mode === "perso" && (
             <Button variant="outline" onClick={() => demo.start()}>
-              Explorer une démonstration
+              Regarder un exemple
             </Button>
           )}
           <LocalNotice />
@@ -219,12 +220,28 @@ function Dressing() {
               </div>
             </div>
           )}
+          {mode === "demo" && items.some((g) => g.id === "demo-5") && !hasFilter && (
+            <Link
+              to="/piece/$id"
+              params={{ id: "demo-5" }}
+              className="press mb-4 flex items-center gap-3 rounded-[var(--radius-card)] bg-card p-2.5 shadow-soft"
+            >
+              <GarmentImage
+                g={items.find((g) => g.id === "demo-5")!}
+                className="size-14 shrink-0 rounded-xl"
+              />
+              <span>
+                <span className="eyebrow">À ressortir</span>
+                <span className="mt-0.5 block text-sm">Le blazer marine attend depuis un moment.</span>
+              </span>
+            </Link>
+          )}
           {filtered.length === 0 ? (
             <p className="py-12 text-center text-muted-foreground">
               Aucune pièce ne correspond à ces filtres.
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="dressing-grid grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4">
               {filtered.map((g) => (
                 <GarmentCard key={g.id} g={g} />
               ))}

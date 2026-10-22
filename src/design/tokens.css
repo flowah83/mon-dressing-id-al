@@ -1,0 +1,161 @@
+/* Vestiaire — identité « Atelier » (proposition, branche jetable).
+   Les variables sont le système. Les deux autres directions
+   (doux, sombre) réutilisent les mêmes rôles, avec d'autres valeurs. */
+
+:root,
+[data-theme="atelier"] {
+  color-scheme: light;
+  --radius: 0.75rem;
+
+  --background: #f6f3ee;
+  --foreground: #1c1917;
+  --card: #fffcf8;
+  --card-foreground: #1c1917;
+  --popover: #fffcf8;
+  --popover-foreground: #1c1917;
+  --primary: #8f3d2b;
+  --primary-foreground: #fff8f4;
+  --secondary: #efeae3;
+  --secondary-foreground: #1c1917;
+  --muted: #efeae3;
+  --muted-foreground: #5c564e;
+  --accent: #f3e4d8;
+  --accent-foreground: #6e3426;
+  --destructive: #9f2d2d;
+  --destructive-foreground: #fff8f4;
+  --demo: #e7d3b0;
+  --demo-foreground: #4a3418;
+  --photo: #e8e4df;
+  --border: #e4ddd4;
+  --input: #ddd6cc;
+  --ring: #8f3d2b;
+
+  --shadow-soft: 0 1px 2px #1c19170f, 0 12px 32px -18px #1c191726;
+  --shadow-lift: 0 18px 40px -20px #1c19173d;
+
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+
+  --text-display: 2.125rem;
+  --text-title: 1.75rem;
+  --text-body: 1rem;
+  --text-small: 0.875rem;
+  --text-eyebrow: 0.75rem;
+  --leading-body: 1.45;
+
+  --space-page: 1.25rem;
+  --space-stack: 1rem;
+  --space-section: 1.75rem;
+  --radius-card: 1.25rem;
+  --radius-photo: 1rem;
+  --radius-control: 999px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-press: cubic-bezier(0.2, 0, 0, 1);
+  --dur-press: 120ms;
+  --dur-page: 320ms;
+  --dur-reveal: 420ms;
+  --dur-success: 700ms;
+}
+
+/* Doux & chaleureux — terre cuite, cartes très rondes. */
+[data-theme="doux"] {
+  color-scheme: light;
+  --radius: 1.35rem;
+  --background: #f3e6d6;
+  --foreground: #2a211c;
+  --card: #fff8f1;
+  --card-foreground: #2a211c;
+  --popover: #fff8f1;
+  --popover-foreground: #2a211c;
+  --primary: #9a3e24;
+  --primary-foreground: #fff8f4;
+  --secondary: #f6dcc8;
+  --secondary-foreground: #2a211c;
+  --muted: #ead9c8;
+  --muted-foreground: #5e4a3e;
+  --accent: #f6d7c6;
+  --accent-foreground: #7a341c;
+  --destructive: #9f2d2d;
+  --destructive-foreground: #fff8f4;
+  --demo: #e7c4a4;
+  --demo-foreground: #5a3118;
+  --photo: #f3e0d0;
+  --border: #e2cdba;
+  --input: #e2cdba;
+  --ring: #9a3e24;
+  --shadow-soft: 0 10px 28px -14px #9a3e2430;
+  --shadow-lift: 0 20px 40px -16px #9a3e2440;
+  --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --radius-card: 1.75rem;
+  --radius-photo: 1.5rem;
+}
+
+/* Moderne sombre — encre et corail. */
+[data-theme="sombre"] {
+  color-scheme: dark;
+  --radius: 0.8rem;
+  --background: #12110f;
+  --foreground: #f6f1ea;
+  --card: #1c1b19;
+  --card-foreground: #f6f1ea;
+  --popover: #1c1b19;
+  --popover-foreground: #f6f1ea;
+  --primary: #ff7a59;
+  --primary-foreground: #1c1917;
+  --secondary: #2a2724;
+  --secondary-foreground: #f6f1ea;
+  --muted: #2a2724;
+  --muted-foreground: #c8bdb0;
+  --accent: #2e241f;
+  --accent-foreground: #ffb199;
+  --destructive: #ff8a80;
+  --destructive-foreground: #1c1917;
+  --demo: #3a2a22;
+  --demo-foreground: #f0c9a0;
+  --photo: #262320;
+  --border: #34302c;
+  --input: #3a342e;
+  --ring: #ff7a59;
+  --shadow-soft: 0 1px 0 #ffffff14, 0 14px 32px -16px #0000008c;
+  --shadow-lift: 0 18px 44px -18px #000000c0;
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Syne", ui-sans-serif, system-ui, sans-serif;
+  --radius-card: 1rem;
+  --radius-photo: 0.85rem;
+}
+
+/* Sombre, mêmes rôles, version nuit de l'identité retenue.
+   Proposée pour le soir, pas comme thème par défaut :
+   les photos détourées se lisent mieux sur le papier clair. */
+[data-theme="atelier-nuit"] {
+  color-scheme: dark;
+  --radius: 0.75rem;
+  --background: #141311;
+  --foreground: #f6f1ea;
+  --card: #1e1c19;
+  --card-foreground: #f6f1ea;
+  --popover: #1e1c19;
+  --popover-foreground: #f6f1ea;
+  --primary: #e7b08a;
+  --primary-foreground: #1c1917;
+  --secondary: #2a2622;
+  --secondary-foreground: #f6f1ea;
+  --muted: #2a2622;
+  --muted-foreground: #c8bdb0;
+  --accent: #3a2c26;
+  --accent-foreground: #f0d2c0;
+  --destructive: #ff8a80;
+  --destructive-foreground: #1c1917;
+  --demo: #3a2e22;
+  --demo-foreground: #f0d7b0;
+  --photo: #2a2622;
+  --border: #3a342c;
+  --input: #3a342c;
+  --ring: #e7b08a;
+  --shadow-soft: 0 1px 0 #ffffff12, 0 14px 32px -16px #00000080;
+  --shadow-lift: 0 18px 44px -18px #000000b8;
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+}

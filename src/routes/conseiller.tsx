@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { WeatherCard } from "@/components/vestiaire/WeatherCard";
+import { StreakPill, SwipeCard, useWornLog, WearNote } from "@/components/vestiaire/ritual";
 import { Collage, EmptyState, Page, PageHeader } from "@/components/vestiaire/ui";
 import { useAuth } from "@/lib/account";
 import { adviseOutfits } from "@/lib/ai.functions";
@@ -16,6 +17,7 @@ import { sliderChangeIsDeliberate } from "@/lib/slider-intent";
 import { useGarments, useMode, useOutfits, useSaveOutfit } from "@/lib/store";
 import {
   adviceTemperature,
+  formatWeatherLines,
   TEMP_MAX,
   TEMP_MIN,
   toAdviceWeather,
@@ -74,6 +76,9 @@ function Conseiller() {
     error?: string;
     advice?: { index: number; title: string; text: string }[];
   }>({ loading: false });
+  const worn = useWornLog();
+  const [shift, setShift] = useState(0);
+  const [celebrate, setCelebrate] = useState(false);
   const pointer = useRef({ active: false, x: 0, y: 0, moved: 0 });
   const autoRef = useRef("");
   const proposeRef = useRef<() => Promise<void>>(async () => {});
@@ -81,9 +86,6 @@ function Conseiller() {
   const snapshot = weather.state.snapshot;
   const followed = !manual && !!snapshot;
   const temperature = followed && snapshot ? adviceTemperature(snapshot) : temp;
-  const daily =
-    occasion === "quotidien" && level === "simple" && style === "any" && !anchor && followed;
-
   useEffect(() => {
     if (manual || !snapshot) return;
     setTemp(adviceTemperature(snapshot));
@@ -173,11 +175,30 @@ function Conseiller() {
   const known = (ids: string[]) =>
     savedKeys.includes(outfitKey(ids)) || !!findOutfitByPieces(outfits, ids);
 
+  const proposals = res?.proposals ?? [];
+  const turn = proposals.length ? shift % proposals.length : 0;
+  const ordered =
+    proposals.length > 0 ? [...proposals.slice(turn), ...proposals.slice(0, turn)] : [];
+  const hero = ordered[0];
+  const heroPieces = hero ? piecesOf(hero.itemIds) : [];
+  const heroTitle = hero ? "Tenue du jour" : "";
+
+  function wearHero() {
+    if (!hero || worn.wornToday) return;
+    worn.log({ date: worn.today, itemIds: hero.itemIds, name: heroTitle });
+    setCelebrate(true);
+    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+      navigator.vibrate(12);
+    }
+    window.setTimeout(() => setCelebrate(false), 1600);
+  }
+
   return (
     <Page>
       <PageHeader
-        eyebrow={mode === "demo" ? "Démonstration" : "Avec vos pièces"}
-        title="Conseiller"
+        eyebrow={mode === "demo" ? "Exemple" : "Aujourd'hui"}
+        title="Tenue du jour"
+        action={<StreakPill count={worn.count} />}
       />
       {auth.ready && !auth.user && (
         <p className="mb-4 text-sm text-muted-foreground">
@@ -196,34 +217,85 @@ function Conseiller() {
           text="Impossible de lire le dressing sur cet appareil."
         />
       ) : items.length === 0 ? (
-        <EmptyState title="Rien à associer" text="Ajoutez d'abord des pièces à votre dressing.">
+        <EmptyState title="Rien à associer" text="Ajoute d'abord quelques pièces. La tenue du jour viendra ensuite.">
           <Button asChild>
             <Link to="/ajouter">Ajouter une pièce</Link>
           </Button>
         </EmptyState>
       ) : (
         <div className="space-y-5">
-          <WeatherCard
-            state={weather.state}
-            manual={manual}
-            onRetry={weather.retry}
-            onUseForecast={() => {
-              if (!snapshot) return;
-              setManual(false);
-              setTemp(adviceTemperature(snapshot));
-            }}
-          />
-          <p className="text-sm leading-relaxed">
-            {followed
-              ? `La tenue du jour suit le ressenti (${temperature} °C), pour un usage quotidien. La pluie et le vent, s'ils sont connus, ajoutent une couche.`
-              : weather.state.reason === "denied"
-                ? "Sans localisation, seule la température du curseur compte. La pluie et le vent restent inconnus."
-                : manual
-                  ? "Vous avez quitté le ressenti : la tenue suit la température du curseur."
-                  : "Dès que la météo est connue, une tenue du jour est proposée (quotidien, ressenti)."}
-          </p>
+          {hero ? (
+            <SwipeCard
+              key={hero.itemIds.join("-")}
+              onLike={() => void keep(hero.itemIds, heroTitle, hero.reasons[0])}
+              onNext={() => setShift((s) => s + 1)}
+            >
+              <article className="relative overflow-hidden rounded-[var(--radius-card)] bg-card p-3 shadow-soft">
+                <WearNote show={celebrate} />
+                <Collage items={heroPieces} />
+                <div className="p-2">
+                  <p className="mt-2 text-sm leading-relaxed">
+                    {heroPieces.map((g) => g.name).join(" · ")}
+                  </p>
+                  {hero.reasons[0] && (
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                      {hero.reasons[0]}
+                    </p>
+                  )}
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Glisse à droite si tu l'aimes, à gauche pour une autre idée.
+                  </p>
+                  <Button
+                    size="lg"
+                    className="mt-4 min-h-12 w-full text-base"
+                    disabled={worn.wornToday}
+                    onClick={wearHero}
+                  >
+                    {worn.wornToday ? "C'est noté pour aujourd'hui" : "Je la porte"}
+                  </Button>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      className="chip justify-center"
+                      onClick={() => setShift((s) => s + 1)}
+                    >
+                      Une autre idée
+                    </button>
+                    <button
+                      type="button"
+                      className="chip justify-center"
+                      onClick={() => void keep(hero.itemIds, heroTitle, hero.reasons[0])}
+                    >
+                      <Heart className="size-4" /> {known(hero.itemIds) ? "Gardée" : "Garder"}
+                    </button>
+                  </div>
+                </div>
+              </article>
+            </SwipeCard>
+          ) : (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" /> On prépare ta tenue…
+            </p>
+          )}
 
-          <details className="rounded-3xl bg-card p-4 shadow-soft">
+          {snapshot ? (
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {formatWeatherLines(snapshot).title}. {formatWeatherLines(snapshot).detail}.
+            </p>
+          ) : (
+            <WeatherCard
+              state={weather.state}
+              manual={manual}
+              onRetry={weather.retry}
+              onUseForecast={() => {
+                if (!snapshot) return;
+                setManual(false);
+                setTemp(adviceTemperature(snapshot));
+              }}
+            />
+          )}
+
+          <details className="rounded-[var(--radius-card)] bg-card p-4 shadow-soft">
             <summary className="min-h-11 cursor-pointer text-base font-medium">
               Ajuster la proposition
             </summary>
@@ -389,61 +461,36 @@ function Conseiller() {
               {ai.error} Les explications ci-dessous viennent des règles de style.
             </p>
           )}
-          {res && res.proposals.length > 0 && (
-            <h2 className="text-3xl">{daily ? "La tenue du jour" : "Propositions"}</h2>
+          {ordered.length > 1 && (
+            <div className="space-y-3">
+              <h2 className="text-[1.75rem] leading-none">Autres idées</h2>
+              {ordered.slice(1, 3).map((p, i) => {
+                const pieces = piecesOf(p.itemIds);
+                return (
+                  <button
+                    key={p.itemIds.join()}
+                    type="button"
+                    className="press flex w-full items-center gap-3 rounded-[var(--radius-card)] bg-card p-2 text-left shadow-soft"
+                    onClick={() => setShift((s) => s + i + 1)}
+                  >
+                    <Collage items={pieces} className="!aspect-auto h-16 w-16 shrink-0" />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium">
+                        {pieces.map((g) => g.name).join(" · ")}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           )}
-          <div className="grid gap-6 md:grid-cols-3">
-            {res?.proposals.map((p, i) => {
-              const pieces = piecesOf(p.itemIds);
-              const adv = ai.advice?.find((a) => a.index === i) ?? ai.advice?.[i];
-              const already = known(p.itemIds);
-              const title =
-                i === 0 && daily
-                  ? (adv?.title ?? "La tenue du jour")
-                  : (adv?.title ?? `Tenue ${i + 1}`);
-              return (
-                <article key={p.itemIds.join()} className="rounded-3xl bg-card p-3 shadow-soft">
-                  <Collage items={pieces} />
-                  <div className="p-2">
-                    {i === 0 && daily && <p className="eyebrow mt-2">Pour aujourd'hui</p>}
-                    <h2 className="mt-2 text-2xl">{title}</h2>
-                    <p className="mt-1 text-sm">{pieces.map((g) => g.name).join(" · ")}</p>
-                    {adv && (
-                      <p className="mt-3 rounded-xl bg-accent p-3 text-sm text-accent-foreground">
-                        <Sparkles className="mr-1 inline size-3.5" /> {adv.text}
-                      </p>
-                    )}
-                    <p className="eyebrow mt-3">Règles de style</p>
-                    <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
-                      {p.reasons.map((r) => (
-                        <li key={r}>· {r}</li>
-                      ))}
-                    </ul>
-                    <Button
-                      variant={already ? "secondary" : "outline"}
-                      size="default"
-                      className="mt-4 min-h-11 w-full"
-                      disabled={already}
-                      onClick={() => void keep(p.itemIds, title, adv?.text)}
-                    >
-                      <Heart /> {already ? "Déjà dans les favoris" : "Garder en favori"}
-                    </Button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-          <div className="h-16" aria-hidden />
-        </div>
-      )}
-      {items.length > 0 && (
-        <div
-          className="fixed inset-x-0 z-30 mx-auto max-w-5xl px-5"
-          style={{ bottom: "calc(env(safe-area-inset-bottom) + 4.75rem)" }}
-        >
-          <Button size="lg" className="w-full shadow-lift" onClick={() => void propose(true)}>
-            Proposer des tenues
-          </Button>
+          <button
+            type="button"
+            className="press min-h-11 text-sm font-medium text-primary underline underline-offset-4"
+            onClick={() => void propose(true)}
+          >
+            <Sparkles className="mr-1 inline size-4" /> Un mot du styliste
+          </button>
         </div>
       )}
     </Page>
