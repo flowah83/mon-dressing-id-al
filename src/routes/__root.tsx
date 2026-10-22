@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useLocation,
   HeadContent,
   Scripts,
   type ErrorComponentProps,
@@ -15,7 +16,8 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AccountProvider } from "@/lib/account";
 import { shouldRegisterServiceWorker } from "@/lib/pwa";
 import { ModeProvider } from "@/lib/store";
-import { BottomNav, DemoBanner, IosChrome } from "@/components/vestiaire/ui";
+import { ViewTransitions } from "@/components/vestiaire/transitions";
+import { BottomNav, IosChrome } from "@/components/vestiaire/ui";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -140,6 +142,8 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+  const { pathname } = useLocation();
+  const welcome = pathname === "/bienvenue";
 
   useEffect(() => {
     if (!shouldRegisterServiceWorker(import.meta.env.PROD, "serviceWorker" in navigator)) return;
@@ -150,6 +154,7 @@ function RootComponent() {
     const paths = [
       "/",
       "/ajouter",
+      "/bienvenue",
       "/composer",
       "/conseiller",
       "/favoris",
@@ -164,16 +169,33 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AccountProvider>
         <ModeProvider>
+          <ViewTransitions />
+          <WelcomeGate />
           <IosChrome />
           <OfflineNote />
-          <DemoBanner />
           <Outlet />
-          <BottomNav />
-          <Toaster position="bottom-center" offset={108} />
+          {welcome ? null : <BottomNav />}
+          <Toaster position="bottom-center" offset={welcome ? 24 : 88} />
         </ModeProvider>
       </AccountProvider>
     </QueryClientProvider>
   );
+}
+
+function WelcomeGate() {
+  const router = useRouter();
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (pathname === "/bienvenue") return;
+    try {
+      if (localStorage.getItem("vestiaire-welcome") === "1") return;
+      if (localStorage.getItem("vestiaire-mode") === "demo") return;
+    } catch {
+      return;
+    }
+    void router.navigate({ to: "/bienvenue" });
+  }, [pathname, router]);
+  return null;
 }
 
 function OfflineNote() {
@@ -191,8 +213,7 @@ function OfflineNote() {
   if (!offline) return null;
   return (
     <p className="bg-foreground px-5 py-3 text-center text-sm text-background">
-      Hors ligne. Le dressing de cet appareil reste ouvert. La météo, le conseil du styliste et la
-      copie en ligne reprendront avec le réseau.
+      Hors ligne. Votre dressing reste ouvert. La météo et la note du styliste attendent le réseau.
     </p>
   );
 }

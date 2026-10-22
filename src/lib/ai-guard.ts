@@ -22,12 +22,12 @@ export function messageFor(
   if (reason === "config") {
     return kind === "analysis"
       ? "L'analyse automatique n'est pas encore activée."
-      : "Le conseil du styliste n'est pas encore activé.";
+      : "La note du styliste n'est pas disponible pour le moment.";
   }
   if (reason === "signed-out") {
     return kind === "analysis"
       ? "Connectez-vous pour utiliser l'analyse photo (Réglages, puis Compte)."
-      : "Connectez-vous pour le conseil du styliste (Réglages, puis Compte).";
+      : "Connectez-vous pour recevoir une note du styliste. Réglages, puis Compte.";
   }
   if (reason === "expired") {
     return "Votre connexion a expiré. Reconnectez-vous, puis réessayez.";

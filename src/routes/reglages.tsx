@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Page, PageHeader, SyncLine } from "@/components/vestiaire/ui";
+import { DemoSettingsCard, Page, PageHeader, SyncLine } from "@/components/vestiaire/ui";
 import { useAuth } from "@/lib/account";
 import { exportPersonal, importPersonal } from "@/lib/db";
 import { requestSyncNow } from "@/lib/sync-bridge";
@@ -11,9 +11,9 @@ import { requestSyncNow } from "@/lib/sync-bridge";
 export const Route = createFileRoute("/reglages")({
   head: () => ({
     meta: [
-      { title: "Sauvegarde — Vestiaire" },
+      { title: "Réglages — Vestiaire" },
       { name: "description", content: "Compte, copie en ligne, export et import du dressing." },
-      { property: "og:title", content: "Sauvegarde — Vestiaire" },
+      { property: "og:title", content: "Réglages — Vestiaire" },
       {
         property: "og:description",
         content: "Compte, copie en ligne, export et import du dressing.",
@@ -30,7 +30,7 @@ function Reglages() {
   const [notice, setNotice] = useState<string | null>(null);
   return (
     <Page>
-      <PageHeader back eyebrow="Données" title="Sauvegarde" />
+      <PageHeader back title="Réglages" />
       <div className="space-y-3 text-sm leading-relaxed">
         <p>
           Cette page sert à ne pas perdre vos photos et vos fiches. Deux façons : un compte (copie
@@ -117,6 +117,7 @@ function Reglages() {
           <Link to="/historique">Ouvrir l'historique</Link>
         </Button>
       </div>
+      <DemoSettingsCard />
       <div className="mt-4 space-y-3 rounded-3xl bg-card p-6 shadow-soft">
         <h2 className="text-2xl">Sur l'écran d'accueil</h2>
         <p>Pour ouvrir Vestiaire comme une application, sans la barre du navigateur :</p>
@@ -133,8 +134,7 @@ function Reglages() {
         </ol>
         <p className="text-sm text-muted-foreground">
           Une fois ajoutée, l'application s'ouvre sans réseau : le dressing déjà présent sur
-          l'appareil reste là. La météo, le conseil du styliste et la copie en ligne attendent la
-          connexion.
+          l'appareil reste là. La météo et la note du styliste attendent la connexion.
         </p>
       </div>
     </Page>

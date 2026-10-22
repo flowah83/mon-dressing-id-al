@@ -72,7 +72,7 @@ function Favoris() {
                   key={o.id}
                   className="rounded-[var(--radius-card)] bg-card p-3 shadow-soft"
                 >
-                  <Collage items={pieces} />
+                  <Collage items={pieces} compact />
                   <OutfitName outfit={o} onSave={(name) => save.mutate({ ...o, name })} />
                   {o.explanation && (
                     <p className="mt-2 px-1 text-sm text-muted-foreground">{o.explanation}</p>

@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Check } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { WearTodayButton } from "@/components/vestiaire/WearTodayButton";
 import { EmptyState, GarmentImage, Page, PageHeader } from "@/components/vestiaire/ui";
+import { cn } from "@/lib/utils";
 import { uid } from "@/lib/db";
 import { findOutfitByPieces } from "@/lib/outfit-match";
 import { useGarments, useMode, useOutfits, useSaveOutfit } from "@/lib/store";
@@ -38,10 +39,17 @@ function Composer() {
   const [sel, setSel] = useState<string[]>(piece ? [piece] : []);
   const [name, setName] = useState("");
   const [showLaundry, setShowLaundry] = useState(false);
+  const [detent, setDetent] = useState<"peek" | "open">("peek");
+  const userSet = useRef(false);
+  const drag = useRef<{ y: number } | null>(null);
+  const dragged = useRef(false);
   useEffect(() => {
     if (!items.length) return;
     setSel((ids) => ids.filter((id) => items.some((g) => g.id === id && g.available)));
   }, [items]);
+  useEffect(() => {
+    if (!userSet.current && sel.length >= 2) setDetent("open");
+  }, [sel.length]);
 
   const picked = sel
     .map((id) => items.find((g) => g.id === id))
@@ -167,43 +175,92 @@ function Composer() {
         className="composer-dock fixed inset-x-0 z-30 mx-auto max-w-lg px-4"
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 4.75rem)" }}
       >
-        <div className="composer-sheet space-y-2 border border-border bg-card/95 p-4 shadow-lift backdrop-blur">
-          {picked.length ? (
-            <div className="flex gap-2 overflow-x-auto">
-              {picked.map((g) => (
-                <GarmentImage key={g.id} g={g} className="size-14 shrink-0 rounded-xl" />
-              ))}
-            </div>
-          ) : (
-            <p className="px-1 text-center text-[15px] text-muted-foreground">
-              Touchez des pièces pour composer votre tenue.
-            </p>
+        <div
+          className={cn(
+            "composer-sheet border border-border bg-card/95 p-4 shadow-lift backdrop-blur",
+            detent === "peek" ? "is-peek" : "is-open",
           )}
-          <input
-            className="field"
-            placeholder="Nom de la tenue"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            aria-label="Nom de la tenue"
+        >
+          <button
+            type="button"
+            className="sheet-grab"
+            aria-label={detent === "open" ? "Réduire la feuille" : "Ouvrir la feuille"}
+            aria-expanded={detent === "open"}
+            onPointerDown={(event) => {
+              drag.current = { y: event.clientY };
+              event.currentTarget.setPointerCapture(event.pointerId);
+            }}
+            onPointerUp={(event) => {
+              if (!drag.current) return;
+              const dy = event.clientY - drag.current.y;
+              drag.current = null;
+              if (Math.abs(dy) < 28) return;
+              dragged.current = true;
+              userSet.current = true;
+              setDetent(dy > 0 ? "peek" : "open");
+            }}
+            onClick={() => {
+              if (dragged.current) {
+                dragged.current = false;
+                return;
+              }
+              userSet.current = true;
+              setDetent((value) => (value === "open" ? "peek" : "open"));
+            }}
           />
-          <Button
-            className="ios-fill w-full"
-            disabled={picked.length < 2 || save.isPending || already}
-            onClick={() => void submit()}
+          <button
+            type="button"
+            className="composer-peek w-full text-left"
+            onClick={() => {
+              userSet.current = true;
+              setDetent("open");
+            }}
           >
-            {already ? "Déjà dans les favoris" : "Enregistrer la tenue"}
-          </Button>
-          {picked.length >= 2 && (
-            <WearTodayButton
-              itemIds={picked.map((garment) => garment.id)}
-              name={name.trim() || "Ma tenue"}
+            <span className="text-[0.9375rem]">
+              {picked.length
+                ? `${picked.length} pièce${picked.length > 1 ? "s" : ""}`
+                : "Touchez des pièces"}
+            </span>
+            <span className="text-[0.9375rem] font-medium text-primary">Ouvrir</span>
+          </button>
+          <div className="sheet-body space-y-2">
+            {picked.length ? (
+              <div className="flex gap-2 overflow-x-auto">
+                {picked.map((g) => (
+                  <GarmentImage key={g.id} g={g} className="size-14 shrink-0 rounded-xl" />
+                ))}
+              </div>
+            ) : (
+              <p className="px-1 text-center text-[0.9375rem] text-muted-foreground">
+                Touchez des pièces pour composer votre tenue.
+              </p>
+            )}
+            <input
+              className="field"
+              placeholder="Nom de la tenue"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              aria-label="Nom de la tenue"
             />
-          )}
-          {picked.length < 2 && (
-            <p className="text-center text-[13px] text-muted-foreground">
-              Choisissez au moins deux pièces.
-            </p>
-          )}
+            <Button
+              className="ios-fill w-full"
+              disabled={picked.length < 2 || save.isPending || already}
+              onClick={() => void submit()}
+            >
+              {already ? "Déjà dans les favoris" : "Enregistrer la tenue"}
+            </Button>
+            {picked.length >= 2 && (
+              <WearTodayButton
+                itemIds={picked.map((garment) => garment.id)}
+                name={name.trim() || "Ma tenue"}
+              />
+            )}
+            {picked.length < 2 && (
+              <p className="text-center text-[0.8125rem] text-muted-foreground">
+                Choisissez au moins deux pièces.
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </Page>

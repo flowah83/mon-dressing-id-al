@@ -4,13 +4,14 @@ import { fr } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Collage, EmptyState, Page, PageHeader } from "@/components/vestiaire/ui";
+import { Collage, EmptyState, OutfitHeading, Page, PageHeader } from "@/components/vestiaire/ui";
 import { useDeleteWorn, useGarments, useWorn } from "@/lib/store";
 import {
   formatWornHeading,
   groupWornByDate,
   localDateISO,
   neverWornIds,
+  wearStreak,
   weekDates,
 } from "@/lib/wear";
 
@@ -99,13 +100,19 @@ function Historique() {
                       key={entry.id}
                       className="rounded-[var(--radius-card)] bg-card p-3 shadow-soft"
                     >
-                      <Collage items={pieces} />
-                      <p className="mt-3 px-1 font-medium">{entry.name || "Tenue portée"}</p>
-                      <p className="mt-1 px-1 text-sm text-muted-foreground">
-                        {pieces.length
-                          ? pieces.map((garment) => garment.name).join(" · ")
-                          : "Pièces retirées du dressing"}
-                      </p>
+                      <Collage items={pieces} compact />
+                      <div className="mt-3 px-1">
+                        {pieces.length ? (
+                          <OutfitHeading pieces={pieces} />
+                        ) : (
+                          <p className="font-medium">{entry.name || "Tenue portée"}</p>
+                        )}
+                        {!pieces.length ? (
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Pièces retirées du dressing
+                          </p>
+                        ) : null}
+                      </div>
                       <button
                         type="button"
                         className="chip mt-3"
@@ -138,12 +145,20 @@ function WeekSummary({
   const dates = weekDates(today);
   const noted = new Set(worn.filter((entry) => !entry.deletedAt).map((entry) => entry.wornOn));
   const count = dates.filter((date) => noted.has(date)).length;
+  const streak = wearStreak(worn, today);
   const labels = ["L", "M", "M", "J", "V", "S", "D"];
   return (
     <section className="week-summary mb-4 rounded-[var(--radius-card)] bg-card shadow-soft">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[17px] font-semibold tracking-[-0.02em]">Cette semaine</h2>
-        <p className="text-[13px] text-muted-foreground">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-[1.0625rem] font-semibold tracking-[-0.02em]">Cette semaine</h2>
+          {streak > 0 ? (
+            <p className="streak-capsule mt-2">
+              {streak} jour{streak > 1 ? "s" : ""} d'affilée
+            </p>
+          ) : null}
+        </div>
+        <p className="text-[0.8125rem] text-muted-foreground">
           {count === 0 ? "Aucun jour noté" : `${count} tenue${count > 1 ? "s" : ""}`}
         </p>
       </div>

@@ -1,15 +1,7 @@
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
-import {
-  ChevronLeft,
-  Heart,
-  Layers,
-  Loader2,
-  Plus,
-  Settings2,
-  Shirt,
-  Sparkles,
-} from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { ChevronLeft, Heart, Layers, Loader2, Plus, Settings, Shirt, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { flattenCatalogue } from "@/lib/catalogue-photo";
 import {
   AlertDialog,
@@ -44,7 +36,7 @@ export function BottomNav() {
           active ? "text-primary" : "text-muted-foreground",
         )}
       >
-        <Icon className="size-5" strokeWidth={active ? 2.2 : 1.6} />
+        <Icon className="size-5" strokeWidth={1.75} />
         {label}
       </Link>
     );
@@ -67,7 +59,7 @@ export function BottomNav() {
           )}
         >
           <span className="tab-plus -mt-5 grid size-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lift md:mt-0">
-            <Plus className="size-6" />
+            <Plus className="size-6" strokeWidth={1.75} />
           </span>
           Ajouter
         </Link>
@@ -100,6 +92,7 @@ export function BackButton({ icon = false }: { icon?: boolean }) {
   );
 }
 
+/** Écoute le défilement pour replier le grand titre. Aucune barre d'état dessinée. */
 export function IosChrome() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -114,47 +107,7 @@ export function IosChrome() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [pathname]);
-  return (
-    <div className="ios-status" aria-hidden>
-      <span className="ios-island" />
-      <span className="ios-time">9:41</span>
-      <span className="ios-glyphs">
-        <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor">
-          <rect x="0" y="7" width="3" height="5" rx="0.6" />
-          <rect x="5" y="4.5" width="3" height="7.5" rx="0.6" />
-          <rect x="10" y="2" width="3" height="10" rx="0.6" />
-          <rect x="15" y="0" width="3" height="12" rx="0.6" />
-        </svg>
-        <svg
-          width="16"
-          height="12"
-          viewBox="0 0 16 12"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        >
-          <path d="M1 4.2C3.2 2 6.2 1 8 1s4.8 1 7 3.2" />
-          <path d="M3.2 6.6C4.6 5.2 6.3 4.5 8 4.5s3.4.7 4.8 2.1" />
-          <path d="M5.6 9.1c.7-.7 1.5-1 2.4-1s1.7.3 2.4 1" />
-        </svg>
-        <svg width="27" height="13" viewBox="0 0 27 13" fill="currentColor">
-          <rect
-            x="0.5"
-            y="0.5"
-            width="22"
-            height="12"
-            rx="3"
-            fill="none"
-            stroke="currentColor"
-            strokeOpacity="0.4"
-          />
-          <rect x="2" y="2" width="16" height="9" rx="1.4" />
-          <path d="M24 4.2v4.6c.8-.3 1.5-1.2 1.5-2.3S24.8 4.5 24 4.2z" opacity="0.4" />
-        </svg>
-      </span>
-    </div>
-  );
+  return null;
 }
 
 export function PageHeader({
@@ -226,7 +179,7 @@ export function SettingsLink() {
       aria-label="Réglages, compte et sauvegarde"
       className="settings-link grid size-11 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground"
     >
-      <Settings2 className="size-5" />
+      <Settings className="size-[22px]" strokeWidth={1.75} />
     </Link>
   );
 }
@@ -237,41 +190,58 @@ export function Page({ children }: { children: ReactNode }) {
   );
 }
 
-export function DemoBanner() {
+const DEMO_NOTE_KEY = "vestiaire-demo-note";
+
+/** Note d'exemple, une seule fois, sur le Dressing. */
+export function DemoNote() {
+  const { mode } = useMode();
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (mode !== "demo") return;
+    try {
+      setOpen(localStorage.getItem(DEMO_NOTE_KEY) !== "1");
+    } catch {
+      setOpen(true);
+    }
+  }, [mode]);
+  if (mode !== "demo" || !open) return null;
+  return (
+    <div className="demo-note" role="note">
+      <p>Vous êtes dans l'exemple.</p>
+      <button
+        type="button"
+        className="press"
+        onClick={() => {
+          try {
+            localStorage.setItem(DEMO_NOTE_KEY, "1");
+          } catch {
+            /* le stockage privé peut refuser l'écriture */
+          }
+          setOpen(false);
+        }}
+      >
+        Compris
+      </button>
+    </div>
+  );
+}
+
+/** Quitter ou effacer l'exemple, depuis Réglages uniquement. */
+export function DemoSettingsCard() {
   const { mode } = useMode();
   const demo = useDemoControls();
   const [confirmClear, setConfirmClear] = useState(false);
   if (mode !== "demo") return null;
   return (
-    <div className="demo-banner sticky top-0 z-30 bg-demo text-demo-foreground">
-      <div className="demo-bar mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-1 text-sm md:px-8">
-        <span className="font-semibold">Exemple · pas vos vêtements</span>
-        <span className="flex shrink-0">
-          <button
-            type="button"
-            className="demo-action press min-h-11 px-2 underline underline-offset-4"
-            onClick={() => demo.exit()}
-          >
-            Quitter
-          </button>
-          <button
-            type="button"
-            className="demo-action press min-h-11 px-2 underline underline-offset-4"
-            onClick={() => setConfirmClear(true)}
-          >
-            Effacer
-          </button>
-        </span>
-      </div>
-      <div className="demo-pill">
-        <span>Exemple</span>
-        <span aria-hidden>·</span>
-        <button type="button" className="press" onClick={() => demo.exit()}>
-          Quitter
+    <section className="mt-4 space-y-3 rounded-[var(--radius-card)] bg-card p-6 shadow-soft">
+      <h2 className="text-2xl">Exemple</h2>
+      <p>Vous parcourez des pièces d'exemple. Votre dressing n'est pas modifié.</p>
+      <div className="flex flex-wrap gap-3">
+        <button type="button" className="chip press" onClick={() => demo.exit()}>
+          Quitter l'exemple
         </button>
-        <span aria-hidden>·</span>
-        <button type="button" className="press" onClick={() => setConfirmClear(true)}>
-          Effacer
+        <button type="button" className="chip press" onClick={() => setConfirmClear(true)}>
+          Effacer l'exemple
         </button>
       </div>
       <AlertDialog open={confirmClear} onOpenChange={setConfirmClear}>
@@ -291,13 +261,26 @@ export function DemoBanner() {
               className="min-h-11 bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => void demo.clear()}
             >
-              Effacer la démo
+              Effacer l'exemple
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </section>
   );
+}
+
+function scheduleIdle(task: () => void) {
+  const host = window as Window & {
+    requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+    cancelIdleCallback?: (id: number) => void;
+  };
+  if (typeof host.requestIdleCallback === "function") {
+    const id = host.requestIdleCallback(task, { timeout: 500 });
+    return () => host.cancelIdleCallback?.(id);
+  }
+  const id = window.setTimeout(task, 48);
+  return () => window.clearTimeout(id);
 }
 
 export function GarmentImage({
@@ -312,27 +295,33 @@ export function GarmentImage({
   const raw = useImageSrc(g);
   const [shown, setShown] = useState(raw);
   const [mark, setMark] = useState<string | undefined>(undefined);
+  const [ready, setReady] = useState(false);
   useEffect(() => {
     if (!raw) {
       setShown(undefined);
       setMark(undefined);
+      setReady(false);
       return;
     }
+    setShown(raw);
+    setReady(false);
     const apple = document.documentElement.dataset["theme"]?.startsWith("apple") ?? false;
     if (!apple) {
-      setShown(raw);
       setMark("0");
       return;
     }
     let cancel = false;
-    setMark(undefined);
-    void flattenCatalogue(raw).then((url) => {
-      if (cancel) return;
-      setShown(url);
-      setMark(url !== raw ? "1" : "0");
-    });
+    const run = () => {
+      void flattenCatalogue(raw).then((url) => {
+        if (cancel) return;
+        setShown(url);
+        setMark(url !== raw ? "1" : "0");
+      });
+    };
+    const cancelIdle = scheduleIdle(run);
     return () => {
       cancel = true;
+      cancelIdle();
     };
   }, [raw]);
   return (
@@ -341,12 +330,16 @@ export function GarmentImage({
         <img
           src={shown}
           alt={g.name}
+          width={480}
+          height={600}
+          decoding="async"
           loading={eager ? "eager" : "lazy"}
           data-flat={mark}
-          className="h-full w-full"
+          className={cn("h-full w-full", ready && "is-ready")}
+          onLoad={() => setReady(true)}
         />
       ) : (
-        <div className="h-full w-full animate-pulse bg-muted" />
+        <div className="skeleton h-full w-full" />
       )}
     </div>
   );
@@ -369,53 +362,163 @@ export function Swatch({ color, size = "sm" }: { color: string; size?: "sm" | "m
 
 export function GarmentCard({ g }: { g: Garment }) {
   const save = useSaveGarment();
+  const [menu, setMenu] = useState(false);
+  const [named, setNamed] = useState(false);
+  const timer = useRef<number | null>(null);
+  const held = useRef(false);
+  const clearTimer = () => {
+    if (timer.current) window.clearTimeout(timer.current);
+    timer.current = null;
+  };
   return (
-    <Link to="/piece/$id" params={{ id: g.id }} className="press group block">
-      <div className="relative">
-        <GarmentImage
-          g={g}
-          className={cn(
-            "aspect-[4/5] rounded-2xl transition-shadow group-hover:shadow-lift",
-            !g.available && "opacity-50",
-          )}
-        />
-        <button
-          type="button"
-          className="heart-btn absolute right-1.5 top-1.5 grid size-11 place-items-center"
-          aria-label={g.favorite ? "Retirer des favoris" : "Mettre en favori"}
-          aria-pressed={g.favorite}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            save.mutate({ ...g, favorite: !g.favorite });
-          }}
+    <>
+      <Link
+        to="/piece/$id"
+        params={{ id: g.id }}
+        className="press group garment-card block"
+        onPointerDown={(e) => {
+          if ((e.target as HTMLElement).closest("button")) return;
+          held.current = false;
+          setNamed(true);
+          clearTimer();
+          timer.current = window.setTimeout(() => {
+            held.current = true;
+            setMenu(true);
+          }, 480);
+        }}
+        onPointerUp={clearTimer}
+        onPointerLeave={clearTimer}
+        onPointerCancel={clearTimer}
+        onFocus={() => setNamed(true)}
+        onClick={(e) => {
+          if (!held.current) return;
+          e.preventDefault();
+          held.current = false;
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setMenu(true);
+        }}
+      >
+        <div
+          className="relative"
+          style={named ? ({ viewTransitionName: `garment-${g.id}` } as CSSProperties) : undefined}
         >
-          <span
+          <GarmentImage
+            g={g}
             className={cn(
-              "heart-face grid size-8 place-items-center rounded-full bg-card/90 text-primary",
-              g.favorite && "is-on",
+              "aspect-[4/5] rounded-2xl transition-shadow group-hover:shadow-lift",
+              !g.available && "opacity-50",
             )}
+          />
+          <button
+            type="button"
+            className="heart-btn absolute right-1.5 top-1.5 grid size-11 place-items-center"
+            aria-label={g.favorite ? "Retirer des favoris" : "Mettre en favori"}
+            aria-pressed={g.favorite}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              save.mutate({ ...g, favorite: !g.favorite });
+            }}
           >
-            <Heart
-              className={cn("size-[18px]", g.favorite && "fill-current")}
-              strokeWidth={g.favorite ? 0 : 1.75}
-            />
-          </span>
-        </button>
-        {!g.available && (
-          <span className="absolute left-2 top-2 rounded-full bg-card/90 px-2.5 py-1 text-xs font-medium">
-            Au lavage
-          </span>
-        )}
-      </div>
-      <div className="mt-2 px-0.5">
-        <p className="garment-name truncate text-sm font-medium">{g.name}</p>
-        <div className="garment-meta mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-          {g.colors[0] ? <Swatch color={g.colors[0]} size="dot" /> : null}
-          <span className="truncate">{catLabel(g.category)}</span>
+            <span
+              className={cn(
+                "heart-face grid size-8 place-items-center rounded-full bg-card/90 text-primary",
+                g.favorite && "is-on",
+              )}
+            >
+              <Heart
+                className={cn("size-[18px]", g.favorite && "fill-current")}
+                strokeWidth={g.favorite ? 0 : 1.75}
+              />
+            </span>
+          </button>
+          {!g.available && (
+            <span className="absolute left-2 top-2 rounded-full bg-card/90 px-2.5 py-1 text-xs font-medium">
+              Au lavage
+            </span>
+          )}
         </div>
+        <div className="mt-2 px-0.5">
+          <p className="garment-name truncate text-sm font-medium">{g.name}</p>
+          <div className="garment-meta mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+            {g.colors[0] ? <Swatch color={g.colors[0]} size="dot" /> : null}
+            <span className="truncate">{catLabel(g.category)}</span>
+          </div>
+        </div>
+      </Link>
+      {menu ? (
+        <PieceMenu
+          id={g.id}
+          name={g.name}
+          favorite={g.favorite}
+          available={g.available}
+          onClose={() => setMenu(false)}
+          onFavorite={() => {
+            save.mutate({ ...g, favorite: !g.favorite });
+            setMenu(false);
+          }}
+          onLaundry={() => {
+            save.mutate({ ...g, available: !g.available });
+            setMenu(false);
+          }}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function PieceMenu({
+  id,
+  name,
+  favorite,
+  available,
+  onClose,
+  onFavorite,
+  onLaundry,
+}: {
+  id: string;
+  name: string;
+  favorite: boolean;
+  available: boolean;
+  onClose: () => void;
+  onFavorite: () => void;
+  onLaundry: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <div className="piece-menu-back" onClick={onClose}>
+      <div
+        className="piece-menu"
+        role="menu"
+        aria-label={name}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <p className="piece-menu-title">{name}</p>
+        <button type="button" role="menuitem" className="press" onClick={onFavorite}>
+          {favorite ? "Retirer des favoris" : "Mettre en favori"}
+        </button>
+        <button type="button" role="menuitem" className="press" onClick={onLaundry}>
+          {available ? "Marquer au lavage" : "Remettre disponible"}
+        </button>
+        <Link to="/piece/$id" params={{ id }} role="menuitem" className="press" onClick={onClose}>
+          Voir la fiche
+        </Link>
+        <button type="button" role="menuitem" className="press" onClick={onClose}>
+          Annuler
+        </button>
       </div>
-    </Link>
+    </div>,
+    document.body,
   );
 }
 
@@ -447,30 +550,86 @@ export function ColorPicker({
   );
 }
 
-export function Collage({ items, className }: { items: Garment[]; className?: string }) {
-  if (!items.length) return <div className={cn("aspect-square rounded-2xl bg-muted", className)} />;
-  const [first, ...rest] = items;
+const FLAT_LAYOUTS: { x: string; y: string; w: string; r: number }[][] = [
+  [{ x: "18%", y: "6%", w: "64%", r: -3 }],
+  [
+    { x: "4%", y: "8%", w: "50%", r: -8 },
+    { x: "46%", y: "14%", w: "48%", r: 6 },
+  ],
+  [
+    { x: "3%", y: "4%", w: "48%", r: -7 },
+    { x: "48%", y: "2%", w: "46%", r: 5 },
+    { x: "24%", y: "46%", w: "48%", r: -2 },
+  ],
+  [
+    { x: "2%", y: "3%", w: "48%", r: -6 },
+    { x: "50%", y: "2%", w: "46%", r: 4 },
+    { x: "6%", y: "48%", w: "46%", r: -3 },
+    { x: "50%", y: "50%", w: "42%", r: 7 },
+  ],
+];
+
+export function Collage({
+  items,
+  className,
+  compact,
+}: {
+  items: Garment[];
+  className?: string;
+  compact?: boolean;
+}) {
+  if (!items.length)
+    return <div className={cn("flat-lay is-empty", compact && "is-compact", className)} />;
+  const shown = items.slice(0, 4);
+  const slots = FLAT_LAYOUTS[shown.length - 1] ?? FLAT_LAYOUTS[0]!;
   return (
-    <div
-      className={cn(
-        "outfit-reveal grid aspect-square grid-cols-2 gap-1.5 rounded-2xl bg-photo p-1.5",
-        className,
-      )}
-    >
-      <GarmentImage
-        g={first!}
-        className={cn("rounded-xl", rest.length ? "row-span-2" : "col-span-2 row-span-2")}
-      />
-      {rest.length > 0 && (
-        <div
-          className={cn("grid gap-1.5", rest.length > 2 ? "grid-cols-2" : "grid-cols-1")}
-          style={{ gridRow: "span 2" }}
-        >
-          {rest.slice(0, 4).map((g) => (
-            <GarmentImage key={g.id} g={g} className="min-h-0 rounded-xl" />
-          ))}
+    <div className={cn("flat-lay", compact && "is-compact", className)}>
+      {shown.map((g, index) => {
+        const slot = slots[index] ?? slots[0]!;
+        const width = g.category === "chaussures" ? `calc(${slot.w} * 0.78)` : slot.w;
+        return (
+          <div
+            key={g.id}
+            className="flat-piece"
+            style={{
+              left: slot.x,
+              top: slot.y,
+              width,
+              transform: `rotate(${slot.r}deg)`,
+              zIndex: index + 1,
+            }}
+          >
+            <GarmentImage g={g} eager className="aspect-[3/4] w-full rounded-[14px]" />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function OutfitHeading({ pieces }: { pieces: { name: string }[] }) {
+  const [lead, ...rest] = pieces;
+  if (!lead) return null;
+  return (
+    <div className="outfit-heading">
+      <p className="outfit-lead">{lead.name}</p>
+      {rest.length > 0 ? (
+        <p className="outfit-with">avec {rest.map((piece) => piece.name).join(", ")}</p>
+      ) : null}
+    </div>
+  );
+}
+
+export function CardSkeleton({ count = 6 }: { count?: number }) {
+  return (
+    <div className="dressing-grid grid grid-cols-2 gap-x-3 gap-y-5" aria-hidden>
+      {Array.from({ length: count }).map((_, index) => (
+        <div key={index}>
+          <div className="skeleton aspect-[4/5] rounded-[18px]" />
+          <div className="skeleton mt-2 h-3.5 w-3/4 rounded-full" />
+          <div className="skeleton mt-1.5 h-2.5 w-1/2 rounded-full" />
         </div>
-      )}
+      ))}
     </div>
   );
 }

@@ -4,11 +4,10 @@ import { Heart, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { StreakPill, SwipeCard, WearNote } from "@/components/vestiaire/ritual";
+import { SwipeCard, WearNote } from "@/components/vestiaire/ritual";
 import { WeatherCard } from "@/components/vestiaire/WeatherCard";
-import { Collage, EmptyState, Page, PageHeader } from "@/components/vestiaire/ui";
+import { Collage, EmptyState, OutfitHeading, Page, PageHeader } from "@/components/vestiaire/ui";
 import { WearTodayButton } from "@/components/vestiaire/WearTodayButton";
-import { useAuth } from "@/lib/account";
 import { adviseOutfits } from "@/lib/ai.functions";
 import { ensureAccessCookie } from "@/lib/cloud";
 import { uid } from "@/lib/db";
@@ -16,7 +15,7 @@ import { findOutfitByPieces, outfitKey } from "@/lib/outfit-match";
 import { generateOutfits, type AdvisorResult } from "@/lib/rules";
 import { sliderChangeIsDeliberate } from "@/lib/slider-intent";
 import { useGarments, useMode, useOutfits, useSaveOutfit, useWorn } from "@/lib/store";
-import { localDateISO, neverWornHint, wearStreak } from "@/lib/wear";
+import { localDateISO, neverWornHint } from "@/lib/wear";
 import {
   adviceTemperature,
   formatWeatherLines,
@@ -59,7 +58,6 @@ export const Route = createFileRoute("/conseiller")({
 function Conseiller() {
   const { piece } = Route.useSearch();
   const { mode } = useMode();
-  const auth = useAuth();
   const garments = useGarments();
   const items = garments.data ?? [];
   const { data: outfits = [] } = useOutfits();
@@ -126,8 +124,7 @@ function Conseiller() {
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       setAi({
         loading: false,
-        error:
-          "Hors ligne : le texte du styliste reprendra avec le réseau. La tenue suit les règles de style.",
+        error: "Hors ligne. La tenue reste proposée. La note du styliste attend le réseau.",
       });
       return;
     }
@@ -211,22 +208,16 @@ function Conseiller() {
 
   return (
     <Page>
-      <PageHeader
-        eyebrow={mode === "demo" ? "Exemple" : "Aujourd'hui"}
-        title="Tenue du jour"
-        action={<StreakPill count={wearStreak(worn, localDateISO())} />}
-      />
-      {auth.ready && !auth.user && (
-        <p className="mb-4 text-[15px] leading-5 text-[color:var(--label-secondary)]">
-          {auth.configured
-            ? "Les tenues sont composées avec vos pièces. Le texte du styliste demande une connexion."
-            : "Le texte du styliste sera disponible avec le compte en ligne. Les règles de style fonctionnent déjà."}
-        </p>
-      )}
+      <PageHeader eyebrow={mode === "demo" ? "Exemple" : "Aujourd'hui"} title="Tenue du jour" />
       {garments.isPending ? (
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" /> Chargement du dressing…
-        </p>
+        <div className="overflow-hidden rounded-[20px] bg-card shadow-soft" aria-hidden>
+          <div className="skeleton h-[312px]" />
+          <div className="space-y-2 p-4">
+            <div className="skeleton h-6 w-2/3 rounded-full" />
+            <div className="skeleton h-4 w-1/2 rounded-full" />
+            <div className="skeleton mt-3 h-[50px] rounded-[14px]" />
+          </div>
+        </div>
       ) : garments.isError ? (
         <EmptyState
           title="Stockage inaccessible"
@@ -270,7 +261,7 @@ function Conseiller() {
                       {formatWeatherLines(snapshot).title} · {weatherLabel(snapshot.weatherCode)}
                     </p>
                   )}
-                  <p className="hero-names">{heroPieces.map((g) => g.name).join(" · ")}</p>
+                  <OutfitHeading pieces={heroPieces} />
                   {heroAdvice?.text ? (
                     <p className="hero-reason">
                       <span className="font-semibold text-foreground">Conseil IA. </span>
@@ -494,7 +485,7 @@ function Conseiller() {
                   }}
                 />
                 <Button className="ios-fill w-full" onClick={() => void propose(true)}>
-                  Demander le texte du styliste
+                  Demander une note
                 </Button>
               </div>
             </div>
@@ -502,13 +493,11 @@ function Conseiller() {
 
           {ai.loading && (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" /> Conseil du styliste en cours…
+              <Loader2 className="size-4 animate-spin" /> La note s'écrit…
             </p>
           )}
           {ai.error && (
-            <p className="text-sm text-muted-foreground">
-              {ai.error} L'explication affichée vient des règles de style.
-            </p>
+            <p className="text-sm text-muted-foreground">{ai.error} La tenue reste proposée.</p>
           )}
         </div>
       )}

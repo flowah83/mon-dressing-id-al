@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
+  CardSkeleton,
+  DemoNote,
   EmptyState,
   GarmentCard,
   GarmentImage,
@@ -37,6 +40,10 @@ function Dressing() {
   const { mode, ready } = useMode();
   const { data, isLoading, error } = useGarments();
   const demo = useDemoControls();
+  const qc = useQueryClient();
+  const [pull, setPull] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const pullRef = useRef(0);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<Category | "all">("all");
   const [color, setColor] = useState<string | null>(null);
@@ -46,6 +53,47 @@ function Dressing() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const chipsRef = useRef<HTMLDivElement>(null);
   const [chipsOverflow, setChipsOverflow] = useState(false);
+
+  useEffect(() => {
+    let startY = 0;
+    let active = false;
+    const onStart = (event: TouchEvent) => {
+      if (window.scrollY > 2) return;
+      startY = event.touches[0]?.clientY ?? 0;
+      active = true;
+    };
+    const onMove = (event: TouchEvent) => {
+      if (!active) return;
+      const dy = (event.touches[0]?.clientY ?? 0) - startY;
+      const next = dy > 0 ? Math.min(72, dy * 0.4) : 0;
+      pullRef.current = next;
+      setPull(next);
+    };
+    const onEnd = () => {
+      if (!active) return;
+      active = false;
+      if (pullRef.current > 52) {
+        setRefreshing(true);
+        setPull(36);
+        void qc.invalidateQueries({ queryKey: ["garments"] }).finally(() => {
+          setRefreshing(false);
+          setPull(0);
+          pullRef.current = 0;
+        });
+        return;
+      }
+      setPull(0);
+      pullRef.current = 0;
+    };
+    window.addEventListener("touchstart", onStart, { passive: true });
+    window.addEventListener("touchmove", onMove, { passive: true });
+    window.addEventListener("touchend", onEnd);
+    return () => {
+      window.removeEventListener("touchstart", onStart);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onEnd);
+    };
+  }, [qc]);
 
   const items = useMemo(() => data ?? [], [data]);
   useEffect(() => {
@@ -80,18 +128,22 @@ function Dressing() {
         title="Dressing"
         action={<SettingsLink />}
       />
+      <div className="pull-note" style={{ height: pull }} role="status">
+        {refreshing
+          ? "Actualisation…"
+          : pull > 52
+            ? "Relâchez"
+            : pull > 8
+              ? "Tirer pour actualiser"
+              : ""}
+      </div>
+      {mode === "demo" ? <DemoNote /> : null}
 
-      {(!ready || isLoading) && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="aspect-[4/5] animate-pulse rounded-2xl bg-muted" />
-          ))}
-        </div>
-      )}
+      {(!ready || isLoading) && <CardSkeleton />}
       {error && (
         <EmptyState
-          title="Stockage inaccessible"
-          text={`${(error as Error).message} Vérifiez que la navigation privée est désactivée.`}
+          title="Dressing indisponible"
+          text="Le dressing de cet appareil n'a pas pu s'ouvrir. Si vous êtes en navigation privée, ouvrez un onglet normal."
         />
       )}
 
@@ -115,7 +167,10 @@ function Dressing() {
       {items.length > 0 && (
         <>
           <div className="relative mb-3">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              strokeWidth={1.75}
+            />
             <input
               className="field !pl-10 !pr-12"
               placeholder="Rechercher une pièce"

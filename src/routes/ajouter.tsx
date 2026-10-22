@@ -221,8 +221,8 @@ function Ajouter() {
       {auth.ready && !auth.user && (
         <p className="mb-4 text-sm text-muted-foreground">
           {auth.configured
-            ? "Pour l'analyse automatique, connectez-vous dans Réglages. Sans compte, la fiche se remplit à la main."
-            : "L'analyse automatique n'est pas encore activée. Vous pourrez remplir la fiche vous-même."}
+            ? "Pour remplir la fiche depuis la photo, connectez-vous dans Réglages. Sans compte, vous la remplissez à la main."
+            : "La lecture de la photo n'est pas disponible pour le moment. Vous pouvez remplir la fiche vous-même."}
         </p>
       )}
       <input

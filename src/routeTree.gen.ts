@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AjouterRouteImport } from './routes/ajouter'
+import { Route as BienvenueRouteImport } from './routes/bienvenue'
 import { Route as ComposerRouteImport } from './routes/composer'
 import { Route as CompteRouteImport } from './routes/compte'
 import { Route as ConseillerRouteImport } from './routes/conseiller'
@@ -27,6 +28,11 @@ const IndexRoute = IndexRouteImport.update({
 const AjouterRoute = AjouterRouteImport.update({
   id: '/ajouter',
   path: '/ajouter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BienvenueRoute = BienvenueRouteImport.update({
+  id: '/bienvenue',
+  path: '/bienvenue',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComposerRoute = ComposerRouteImport.update({
@@ -68,6 +74,7 @@ const PieceIdRoute = PieceIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ajouter': typeof AjouterRoute
+  '/bienvenue': typeof BienvenueRoute
   '/composer': typeof ComposerRoute
   '/compte': typeof CompteRoute
   '/conseiller': typeof ConseillerRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ajouter': typeof AjouterRoute
+  '/bienvenue': typeof BienvenueRoute
   '/composer': typeof ComposerRoute
   '/compte': typeof CompteRoute
   '/conseiller': typeof ConseillerRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/ajouter': typeof AjouterRoute
+  '/bienvenue': typeof BienvenueRoute
   '/composer': typeof ComposerRoute
   '/compte': typeof CompteRoute
   '/conseiller': typeof ConseillerRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/ajouter'
+    | '/bienvenue'
     | '/composer'
     | '/compte'
     | '/conseiller'
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/ajouter'
+    | '/bienvenue'
     | '/composer'
     | '/compte'
     | '/conseiller'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/ajouter'
+    | '/bienvenue'
     | '/composer'
     | '/compte'
     | '/conseiller'
@@ -138,6 +150,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AjouterRoute: typeof AjouterRoute
+  BienvenueRoute: typeof BienvenueRoute
   ComposerRoute: typeof ComposerRoute
   CompteRoute: typeof CompteRoute
   ConseillerRoute: typeof ConseillerRoute
@@ -161,6 +174,13 @@ declare module '@tanstack/react-router' {
       path: '/ajouter'
       fullPath: '/ajouter'
       preLoaderRoute: typeof AjouterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bienvenue': {
+      id: '/bienvenue'
+      path: '/bienvenue'
+      fullPath: '/bienvenue'
+      preLoaderRoute: typeof BienvenueRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/composer': {
@@ -218,6 +238,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AjouterRoute: AjouterRoute,
+  BienvenueRoute: BienvenueRoute,
   ComposerRoute: ComposerRoute,
   CompteRoute: CompteRoute,
   ConseillerRoute: ConseillerRoute,
