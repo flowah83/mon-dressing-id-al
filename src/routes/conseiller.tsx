@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ChevronRight, Heart, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { HostedRoute } from "@/components/vestiaire/hosted-route";
+import { useRetainedPiece } from "@/lib/tabs";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SwipeCard, WearNote } from "@/components/vestiaire/ritual";
@@ -52,11 +54,19 @@ export const Route = createFileRoute("/conseiller")({
       },
     ],
   }),
-  component: Conseiller,
+  component: ConseillerRoute,
 });
 
-function Conseiller() {
-  const { piece } = Route.useSearch();
+function ConseillerRoute() {
+  return (
+    <HostedRoute>
+      <Conseiller />
+    </HostedRoute>
+  );
+}
+
+export function Conseiller() {
+  const piece = useRetainedPiece("/conseiller");
   const { mode } = useMode();
   const garments = useGarments();
   const items = garments.data ?? [];
@@ -73,7 +83,12 @@ function Conseiller() {
   const [temp, setTemp] = useState(18);
   const [manual, setManual] = useState(false);
   const [level, setLevel] = useState<Level>("simple");
-  const [anchor, setAnchor] = useState<string>(piece ?? "");
+  const [anchor, setAnchor] = useState<string>(piece);
+  const appliedPiece = useRef(piece);
+  if (piece !== appliedPiece.current) {
+    appliedPiece.current = piece;
+    setAnchor(piece);
+  }
   const [res, setRes] = useState<AdvisorResult | null>(null);
   const [savedKeys, setSavedKeys] = useState<string[]>([]);
   const [ai, setAi] = useState<{
@@ -161,8 +176,10 @@ function Conseiller() {
 
   useEffect(() => {
     if (!garments.isSuccess || items.length === 0) return;
-    if (weather.state.phase !== "ready" && weather.state.phase !== "error") return;
-    const key = `${weather.state.phase}:${snapshot?.fetchedAt ?? "none"}:${items.length}:${wearStamp}`;
+    const settled = weather.state.phase === "ready" || weather.state.phase === "error";
+    const key = settled
+      ? `${weather.state.phase}:${snapshot?.fetchedAt ?? "none"}:${items.length}:${wearStamp}`
+      : `soon:${items.length}:${wearStamp}`;
     if (autoRef.current === key) return;
     autoRef.current = key;
     void proposeRef.current();
@@ -305,9 +322,14 @@ function Conseiller() {
               Aucune tenue avec ces réglages. Ajustez la proposition, ou ajoutez des pièces.
             </p>
           ) : (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" /> Préparation de votre tenue…
-            </p>
+            <div className="overflow-hidden rounded-[20px] bg-card shadow-soft" aria-hidden>
+              <div className="skeleton h-[312px]" />
+              <div className="space-y-2 p-4">
+                <div className="skeleton h-6 w-2/3 rounded-full" />
+                <div className="skeleton h-4 w-1/2 rounded-full" />
+                <div className="skeleton mt-3 h-[50px] rounded-[14px]" />
+              </div>
+            </div>
           )}
 
           <section className="adjust-card">

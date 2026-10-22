@@ -17,6 +17,7 @@ import { AccountProvider } from "@/lib/account";
 import { shouldRegisterServiceWorker } from "@/lib/pwa";
 import { ModeProvider } from "@/lib/store";
 import { ViewTransitions } from "@/components/vestiaire/transitions";
+import { TabHost, TabHostProvider } from "@/components/vestiaire/tab-host";
 import { BottomNav, IosChrome } from "@/components/vestiaire/ui";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -169,13 +170,16 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AccountProvider>
         <ModeProvider>
-          <ViewTransitions />
-          <WelcomeGate />
-          <IosChrome />
-          <OfflineNote />
-          <Outlet />
-          {welcome ? null : <BottomNav />}
-          <Toaster position="bottom-center" offset={welcome ? 24 : 88} />
+          <TabHostProvider>
+            <ViewTransitions />
+            <WelcomeGate />
+            <IosChrome />
+            <OfflineNote />
+            <TabHost />
+            <Outlet />
+            {welcome ? null : <BottomNav />}
+            <Toaster position="bottom-center" offset={welcome ? 24 : 88} />
+          </TabHostProvider>
         </ModeProvider>
       </AccountProvider>
     </QueryClientProvider>

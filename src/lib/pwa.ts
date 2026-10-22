@@ -21,3 +21,21 @@ export function isAppShellRequest(input: {
 export function shouldRegisterServiceWorker(prod: boolean, supported: boolean): boolean {
   return prod && supported;
 }
+
+export type ShellCachePolicy = "cache-first" | "stale-while-revalidate";
+
+/** Fichiers hachés : cache d'abord. Documents : réponse en cache, puis mise à jour. */
+export function shellCachePolicy(input: {
+  method: string;
+  origin: string;
+  appOrigin: string;
+  pathname: string;
+  destination: string;
+  search: string;
+}): ShellCachePolicy | null {
+  if (!isAppShellRequest(input)) return null;
+  if (input.pathname === "/sw.js") return "stale-while-revalidate";
+  if (input.pathname.startsWith("/assets/") || STATIC_EXT.test(input.pathname))
+    return "cache-first";
+  return "stale-while-revalidate";
+}

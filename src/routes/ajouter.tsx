@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { GarmentForm, emptyFields, type GarmentFields } from "@/components/vestiaire/GarmentForm";
 import { BusyStatus, LocalNotice, Page, PageHeader } from "@/components/vestiaire/ui";
+import { HostedRoute } from "@/components/vestiaire/hosted-route";
 import { usePhotoCutout } from "@/hooks/use-photo-cutout";
 import { useAuth } from "@/lib/account";
 import { analyzeGarment } from "@/lib/ai.functions";
@@ -39,12 +40,20 @@ export const Route = createFileRoute("/ajouter")({
       },
     ],
   }),
-  component: Ajouter,
+  component: AjouterRoute,
 });
+
+function AjouterRoute() {
+  return (
+    <HostedRoute>
+      <Ajouter />
+    </HostedRoute>
+  );
+}
 
 type Status = "idle" | "compress" | "analyse" | "ready" | "saving";
 
-function Ajouter() {
+export function Ajouter() {
   const { mode } = useMode();
   const auth = useAuth();
   const navigate = useNavigate();

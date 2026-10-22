@@ -11,6 +11,7 @@ import {
   Page,
   PageHeader,
 } from "@/components/vestiaire/ui";
+import { HostedRoute } from "@/components/vestiaire/hosted-route";
 import { useDeleteOutfit, useGarments, useOutfits, useSaveOutfit } from "@/lib/store";
 import type { Outfit } from "@/lib/wardrobe";
 
@@ -23,10 +24,18 @@ export const Route = createFileRoute("/favoris")({
       { property: "og:description", content: "Vos pièces au cœur et vos tenues enregistrées." },
     ],
   }),
-  component: Favoris,
+  component: FavorisRoute,
 });
 
-function Favoris() {
+function FavorisRoute() {
+  return (
+    <HostedRoute>
+      <Favoris />
+    </HostedRoute>
+  );
+}
+
+export function Favoris() {
   const { data: outfits = [], isLoading } = useOutfits();
   const { data: items = [] } = useGarments();
   const save = useSaveOutfit();
