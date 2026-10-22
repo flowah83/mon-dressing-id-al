@@ -8,6 +8,13 @@
       "when": 1792619839042,
       "tag": "0000_comptes_sauvegarde_privee",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792631133408,
+      "tag": "0001_compteur_lisible_par_son_proprietaire",
+      "breakpoints": true
     }
   ]
 }

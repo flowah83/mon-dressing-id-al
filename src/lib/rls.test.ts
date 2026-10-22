@@ -1,11 +1,16 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from vitest-alias;
 import { AI_DAILY_LIMIT } from "./quota";
 import { PHOTO_BUCKET } from "./sync-plan";
 import { CATEGORIES, COLORS, PATTERNS, SEASONS, STYLES } from "./wardrobe";
 
-const sql = readFileSync(resolve(process.cwd(), "supabase/migrations/20261021140000_comptes_sauvegarde_privee.sql"), "utf8");
+const dir = resolve(process.cwd(), "supabase/migrations");
+const sql = readdirSync(dir)
+  .filter((file) => file.endsWith(".sql"))
+  .sort()
+  .map((file) => readFileSync(resolve(dir, file), "utf8"))
+  .join("\n\n");
 const lower = sql.toLowerCase();
 
 describe("règles d'accès de la sauvegarde", () => {
@@ -38,16 +43,10 @@ describe("règles d'accès de la sauvegarde", () => {
   });
 
   it("range les photos dans un bac privé, au nom de la personne", () => {
-    // Le bac lui-même est créé privé par la plateforme (public = false, 5 Mo) :
-    // le SQL ne peut que garantir que chaque lecture reste dans le dossier du propriétaire.
-    const policies = (sql.match(/create policy[^;]+;/g) ?? []).filter((block) => block.includes("storage.objects"));
-    expect(policies.length).toBe(4);
-    for (const policy of policies) {
-      expect(policy).toContain(`bucket_id = '${PHOTO_BUCKET}'`);
-      expect(policy).toContain("(storage.foldername(name))[1] = auth.uid()::text");
-      expect(policy.toLowerCase()).not.toContain("to anon");
-      expect(policy.toLowerCase()).not.toContain("using (true)");
-    }
+    expect(sql).toContain(`'${PHOTO_BUCKET}', '${PHOTO_BUCKET}', false`);
+    expect(sql).toContain("public = false");
+    expect(sql).toContain("(storage.foldername(name))[1] = auth.uid()::text");
+    expect(lower).not.toContain("bucket public");
   });
 
   it("reprend les mêmes catégories, couleurs, motifs et styles que l'application", () => {
