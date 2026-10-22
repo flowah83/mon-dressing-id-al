@@ -3,6 +3,7 @@ import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { WearTodayButton } from "@/components/vestiaire/WearTodayButton";
 import { EmptyState, GarmentImage, Page, PageHeader } from "@/components/vestiaire/ui";
 import { uid } from "@/lib/db";
 import { findOutfitByPieces } from "@/lib/outfit-match";
@@ -118,7 +119,7 @@ function Composer() {
           </button>
         </p>
       )}
-      <div className="space-y-6 pb-44">
+      <div className="space-y-6 pb-64">
         {CATEGORIES.map((c) => {
           const list = items.filter((g) => g.category === c.value && (g.available || showLaundry));
           if (!list.length) return null;
@@ -192,6 +193,12 @@ function Composer() {
           >
             {already ? "Déjà dans les favoris" : "Enregistrer la tenue"}
           </Button>
+          {picked.length >= 2 && (
+            <WearTodayButton
+              itemIds={picked.map((garment) => garment.id)}
+              name={name.trim() || "Ma tenue"}
+            />
+          )}
           {picked.length < 2 && (
             <p className="text-xs text-muted-foreground">Choisissez au moins deux pièces.</p>
           )}

@@ -2,13 +2,7 @@ export type Mode = "perso" | "demo";
 export type Category = "haut" | "bas" | "chaussures" | "veste" | "accessoire" | "robe";
 export type Season = "printemps" | "ete" | "automne" | "hiver";
 export type StyleTag =
-  | "decontracte"
-  | "classique"
-  | "chic"
-  | "sport"
-  | "minimaliste"
-  | "boheme"
-  | "streetwear";
+  "decontracte" | "classique" | "chic" | "sport" | "minimaliste" | "boheme" | "streetwear";
 export type Occasion = "quotidien" | "travail" | "sortie" | "chic";
 export type Level = "simple" | "travaille" | "audacieux";
 
@@ -26,8 +20,26 @@ export interface Garment {
   notes: string;
   image?: Blob;
   imageUrl?: string;
+  /** Original photo kept on this device when `image` is the cut-out. Not copied to the account. */
+  sourceImage?: Blob;
+  /** True when `image` is the background-removed photo. */
+  backgroundRemoved?: boolean;
   /** Storage path inside the private account bucket, once the piece has been copied online. */
   imagePath?: string;
+  createdAt: number;
+  updatedAt?: number;
+  deletedAt?: number;
+}
+
+/** A day the user actually wore a set of garments. */
+export interface WornEntry {
+  id: string;
+  mode: Mode;
+  /** Local calendar day, `YYYY-MM-DD`. */
+  wornOn: string;
+  itemIds: string[];
+  name: string;
+  outfitId?: string;
   createdAt: number;
   updatedAt?: number;
   deletedAt?: number;
@@ -88,7 +100,14 @@ export const LEVELS: { value: Level; label: string; hint: string }[] = [
 export const PATTERNS = ["uni", "rayé", "carreaux", "fleuri", "pois", "imprimé", "texturé"];
 
 /** Swatch colors are data (garment colors), not theme tokens. l = lightness 0..1 */
-export const COLORS: { value: string; label: string; hex: string; neutral: boolean; family: string; l: number }[] = [
+export const COLORS: {
+  value: string;
+  label: string;
+  hex: string;
+  neutral: boolean;
+  family: string;
+  l: number;
+}[] = [
   { value: "noir", label: "Noir", hex: "#1f1f1f", neutral: true, family: "neutre", l: 0.1 },
   { value: "blanc", label: "Blanc", hex: "#fbfaf6", neutral: true, family: "neutre", l: 0.98 },
   { value: "ecru", label: "Écru", hex: "#efe7d6", neutral: true, family: "neutre", l: 0.9 },
@@ -102,12 +121,26 @@ export const COLORS: { value: string; label: string; hex: string; neutral: boole
   { value: "kaki", label: "Kaki / olive", hex: "#6b6b3a", neutral: false, family: "vert", l: 0.42 },
   { value: "vert", label: "Vert", hex: "#3f8a5a", neutral: false, family: "vert", l: 0.5 },
   { value: "rouge", label: "Rouge", hex: "#c0392b", neutral: false, family: "rouge", l: 0.45 },
-  { value: "bordeaux", label: "Bordeaux", hex: "#6d1f2b", neutral: false, family: "rouge", l: 0.28 },
+  {
+    value: "bordeaux",
+    label: "Bordeaux",
+    hex: "#6d1f2b",
+    neutral: false,
+    family: "rouge",
+    l: 0.28,
+  },
   { value: "rose", label: "Rose", hex: "#e3a3b3", neutral: false, family: "rouge", l: 0.75 },
   { value: "orange", label: "Orange", hex: "#e07b39", neutral: false, family: "chaud", l: 0.6 },
   { value: "jaune", label: "Jaune", hex: "#e8c547", neutral: false, family: "chaud", l: 0.8 },
   { value: "violet", label: "Violet", hex: "#7a4f9a", neutral: false, family: "violet", l: 0.4 },
-  { value: "multicolore", label: "Multicolore", hex: "conic-gradient(#c0392b,#e8c547,#3f8a5a,#5b84c4,#c0392b)", neutral: false, family: "multi", l: 0.55 },
+  {
+    value: "multicolore",
+    label: "Multicolore",
+    hex: "conic-gradient(#c0392b,#e8c547,#3f8a5a,#5b84c4,#c0392b)",
+    neutral: false,
+    family: "multi",
+    l: 0.55,
+  },
 ];
 
 export const colorInfo = (v: string) => COLORS.find((c) => c.value === v);

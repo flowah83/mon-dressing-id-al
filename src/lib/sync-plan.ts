@@ -75,18 +75,29 @@ export function planAccountSync(input: {
   remoteGarments: SyncItem[];
   localOutfits: SyncItem[];
   remoteOutfits: SyncItem[];
-}): { wipeLocal: boolean; garmentActions: SyncAction[]; outfitActions: SyncAction[] } {
+  localWorn?: SyncItem[];
+  remoteWorn?: SyncItem[];
+}): {
+  wipeLocal: boolean;
+  garmentActions: SyncAction[];
+  outfitActions: SyncAction[];
+  wornActions: SyncAction[];
+} {
+  const localWorn = input.localWorn ?? [];
+  const remoteWorn = input.remoteWorn ?? [];
   const otherAccount = input.cacheOwner !== null && input.cacheOwner !== input.userId;
   if (otherAccount) {
     return {
       wipeLocal: true,
       garmentActions: input.remoteGarments.map((item) => ({ type: "pull" as const, id: item.id })),
       outfitActions: input.remoteOutfits.map((item) => ({ type: "pull" as const, id: item.id })),
+      wornActions: remoteWorn.map((item) => ({ type: "pull" as const, id: item.id })),
     };
   }
   return {
     wipeLocal: false,
     garmentActions: planSync(input.localGarments, input.remoteGarments),
     outfitActions: planSync(input.localOutfits, input.remoteOutfits),
+    wornActions: planSync(localWorn, remoteWorn),
   };
 }

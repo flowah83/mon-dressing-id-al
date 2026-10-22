@@ -206,4 +206,69 @@ describe("conseiller", () => {
     expect(r.notes.join(" ")).toMatch(/neige/i);
     expect(r.notes.join(" ")).toMatch(/aucune veste/i);
   });
+
+  it("ne repropose pas une tenue portée ces derniers jours", () => {
+    const items = [
+      g("t1", "haut", ["blanc"]),
+      g("t2", "haut", ["blanc"]),
+      g("b", "bas", ["noir"]),
+      g("s", "chaussures", ["noir"]),
+    ];
+    const r = generateOutfits({
+      items,
+      occasion: "quotidien",
+      style: "any",
+      temperature: 20,
+      level: "simple",
+      today: "2026-10-22",
+      recentWears: [{ itemIds: ["t1", "b", "s"], wornOn: "2026-10-21" }],
+    });
+    expect(r.proposals.length).toBeGreaterThan(0);
+    expect(
+      r.proposals.some(
+        (proposal) => proposal.itemIds.includes("t1") && proposal.itemIds.includes("b"),
+      ),
+    ).toBe(false);
+    expect(r.proposals[0]!.itemIds).toContain("t2");
+    expect(r.notes.join(" ")).toMatch(/derniers jours/);
+  });
+
+  it("propose quand même l'unique tenue déjà portée", () => {
+    const items = [
+      g("t", "haut", ["blanc"]),
+      g("b", "bas", ["noir"]),
+      g("s", "chaussures", ["noir"]),
+    ];
+    const r = generateOutfits({
+      items,
+      occasion: "quotidien",
+      style: "any",
+      temperature: 20,
+      level: "simple",
+      today: "2026-10-22",
+      recentWears: [{ itemIds: ["t", "b", "s"], wornOn: "2026-10-22" }],
+    });
+    expect(r.proposals).toHaveLength(1);
+    expect(r.notes.join(" ")).toMatch(/portées récemment/);
+  });
+
+  it("ignore un port plus ancien que la fenêtre", () => {
+    const items = [
+      g("t", "haut", ["blanc"]),
+      g("b", "bas", ["noir"]),
+      g("s", "chaussures", ["noir"]),
+    ];
+    const r = generateOutfits({
+      items,
+      occasion: "quotidien",
+      style: "any",
+      temperature: 20,
+      level: "simple",
+      today: "2026-10-22",
+      recentWears: [{ itemIds: ["t", "b", "s"], wornOn: "2026-10-01" }],
+    });
+    expect(r.proposals).toHaveLength(1);
+    expect(r.proposals[0]!.itemIds).toContain("t");
+    expect(r.notes.join(" ")).not.toMatch(/récemment|derniers jours/);
+  });
 });

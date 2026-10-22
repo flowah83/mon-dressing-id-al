@@ -15,7 +15,12 @@ const lower = sql.toLowerCase();
 
 describe("règles d'accès de la sauvegarde", () => {
   it("ferme les tables et n'ouvre chaque ligne qu'à son propriétaire", () => {
-    for (const table of ["public.garments", "public.outfits", "public.ai_usage"]) {
+    for (const table of [
+      "public.garments",
+      "public.outfits",
+      "public.ai_usage",
+      "public.worn_outfits",
+    ]) {
       expect(lower).toContain(`alter table ${table} enable row level security`);
       expect(lower).toContain(`revoke all on table ${table} from anon`);
     }
@@ -34,7 +39,9 @@ describe("règles d'accès de la sauvegarde", () => {
     expect(sql).toContain("create or replace function public.consume_ai_quota(kind text)");
     expect(sql).not.toContain("consume_ai_quota(user_id");
     expect(lower).toContain("revoke all on function public.consume_ai_quota(text) from anon");
-    expect(lower).toContain("grant execute on function public.consume_ai_quota(text) to authenticated");
+    expect(lower).toContain(
+      "grant execute on function public.consume_ai_quota(text) to authenticated",
+    );
     expect(lower).toContain("grant select on table public.ai_usage to authenticated");
     expect(lower).not.toMatch(/grant\s+(insert|update|delete|all)[^;]*ai_usage/);
     expect(sql).toContain("kind is distinct from 'analysis'");
@@ -43,11 +50,15 @@ describe("règles d'accès de la sauvegarde", () => {
   });
 
   it("laisse chacun lire son propre compteur", () => {
-    expect(sql).toMatch(/create policy ai_usage_select_own[\s\S]*?on public\.ai_usage[\s\S]*?using \(auth\.uid\(\) = user_id\)/);
+    expect(sql).toMatch(
+      /create policy ai_usage_select_own[\s\S]*?on public\.ai_usage[\s\S]*?using \(auth\.uid\(\) = user_id\)/,
+    );
   });
 
   it("range les photos dans un bac privé, au nom de la personne", () => {
-    const policies = (sql.match(/create policy[^;]+;/g) ?? []).filter((block) => block.includes("storage.objects"));
+    const policies = (sql.match(/create policy[^;]+;/g) ?? []).filter((block) =>
+      block.includes("storage.objects"),
+    );
     expect(policies.length).toBe(4);
     for (const policy of policies) {
       expect(policy).toContain(`bucket_id = '${PHOTO_BUCKET}'`);

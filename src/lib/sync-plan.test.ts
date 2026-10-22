@@ -14,30 +14,39 @@ describe("fusion du dressing", () => {
     expect(plan.wipeLocal).toBe(false);
     expect(plan.garmentActions).toEqual([{ type: "push", id: "manteau" }]);
     expect(plan.outfitActions).toEqual([{ type: "push", id: "tenue" }]);
+    expect(plan.wornActions).toEqual([]);
   });
 
   it("ramène les pièces du compte et garde la version la plus récente", () => {
     expect(
       planSync(
-        [{ id: "a", updatedAt: 1 }, { id: "b", updatedAt: 5 }],
-        [{ id: "b", updatedAt: 4 }, { id: "c", updatedAt: 3 }],
+        [
+          { id: "a", updatedAt: 1 },
+          { id: "b", updatedAt: 5 },
+        ],
+        [
+          { id: "b", updatedAt: 4 },
+          { id: "c", updatedAt: 3 },
+        ],
       ),
     ).toEqual([
       { type: "push", id: "a" },
       { type: "push", id: "b" },
       { type: "pull", id: "c" },
     ]);
-    expect(planSync([{ id: "a", updatedAt: 2 }], [{ id: "a", updatedAt: 9 }])).toEqual([{ type: "pull", id: "a" }]);
+    expect(planSync([{ id: "a", updatedAt: 2 }], [{ id: "a", updatedAt: 9 }])).toEqual([
+      { type: "pull", id: "a" },
+    ]);
     expect(planSync([{ id: "a", updatedAt: 4 }], [{ id: "a", updatedAt: 4 }])).toEqual([]);
   });
 
   it("propage une suppression plus récente", () => {
-    expect(planSync([{ id: "a", updatedAt: 8, deletedAt: 8 }], [{ id: "a", updatedAt: 2 }])).toEqual([
-      { type: "push", id: "a" },
-    ]);
-    expect(planSync([{ id: "a", updatedAt: 2 }], [{ id: "a", updatedAt: 8, deletedAt: 8 }])).toEqual([
-      { type: "pull", id: "a" },
-    ]);
+    expect(
+      planSync([{ id: "a", updatedAt: 8, deletedAt: 8 }], [{ id: "a", updatedAt: 2 }]),
+    ).toEqual([{ type: "push", id: "a" }]);
+    expect(
+      planSync([{ id: "a", updatedAt: 2 }], [{ id: "a", updatedAt: 8, deletedAt: 8 }]),
+    ).toEqual([{ type: "pull", id: "a" }]);
   });
 
   it("ne verse pas le dressing d'un autre compte", () => {
@@ -48,11 +57,31 @@ describe("fusion du dressing", () => {
       remoteGarments: [{ id: "b1", updatedAt: 1 }],
       localOutfits: [{ id: "secret-tenue", updatedAt: 5 }],
       remoteOutfits: [],
+      localWorn: [{ id: "secret-jour", updatedAt: 9 }],
+      remoteWorn: [{ id: "b-jour", updatedAt: 1 }],
     });
     expect(plan.wipeLocal).toBe(true);
     expect(plan.garmentActions).toEqual([{ type: "pull", id: "b1" }]);
     expect(plan.outfitActions).toEqual([]);
+    expect(plan.wornActions).toEqual([{ type: "pull", id: "b-jour" }]);
     expect(JSON.stringify(plan)).not.toContain("secret");
+  });
+
+  it("fusionne l'historique comme les tenues", () => {
+    const plan = planAccountSync({
+      cacheOwner: "user-1",
+      userId: "user-1",
+      localGarments: [],
+      remoteGarments: [],
+      localOutfits: [],
+      remoteOutfits: [],
+      localWorn: [{ id: "jour", updatedAt: 3 }],
+      remoteWorn: [{ id: "autre", updatedAt: 4 }],
+    });
+    expect(plan.wornActions).toEqual([
+      { type: "pull", id: "autre" },
+      { type: "push", id: "jour" },
+    ]);
   });
 });
 

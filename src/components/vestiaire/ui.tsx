@@ -1,5 +1,14 @@
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
-import { ChevronLeft, Heart, Layers, Plus, Settings2, Shirt, Sparkles } from "lucide-react";
+import {
+  ChevronLeft,
+  Heart,
+  Layers,
+  Loader2,
+  Plus,
+  Settings2,
+  Shirt,
+  Sparkles,
+} from "lucide-react";
 import { useState, type ReactNode } from "react";
 import {
   AlertDialog,
@@ -109,6 +118,29 @@ export function PageHeader({
   );
 }
 
+export function HistoryLink() {
+  return (
+    <Link
+      to="/historique"
+      className="inline-flex min-h-11 items-center px-1 text-sm font-medium text-primary"
+    >
+      Historique
+    </Link>
+  );
+}
+
+export function BusyStatus({ label, action }: { label: string; action?: ReactNode }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3 rounded-2xl bg-card p-5 text-sm" role="status">
+        <Loader2 className="size-5 shrink-0 animate-spin text-primary" />
+        <span>{label}</span>
+      </div>
+      {action}
+    </div>
+  );
+}
+
 export function SettingsLink() {
   return (
     <Link
@@ -181,10 +213,12 @@ export function GarmentImage({
   g,
   className,
   eager,
+  fit = "cover",
 }: {
   g: Pick<Garment, "image" | "imageUrl" | "name">;
   className?: string;
   eager?: boolean;
+  fit?: "cover" | "contain";
 }) {
   const src = useImageSrc(g);
   return (
@@ -194,7 +228,9 @@ export function GarmentImage({
           src={src}
           alt={g.name}
           loading={eager ? "eager" : "lazy"}
-          className="h-full w-full object-cover"
+          className={
+            fit === "contain" ? "h-full w-full object-contain" : "h-full w-full object-cover"
+          }
         />
       ) : (
         <div className="h-full w-full animate-pulse bg-muted" />

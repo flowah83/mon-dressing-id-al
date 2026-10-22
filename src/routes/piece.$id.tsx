@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { GarmentForm, type GarmentFields } from "@/components/vestiaire/GarmentForm";
-import { EmptyState, GarmentImage, Page, PageHeader } from "@/components/vestiaire/ui";
+import { BusyStatus, EmptyState, GarmentImage, Page, PageHeader } from "@/components/vestiaire/ui";
+import { usePhotoCutout } from "@/hooks/use-photo-cutout";
 import { uid } from "@/lib/db";
 import { blobFromGarment, copyToPersonal } from "@/lib/garment-copy";
-import { compressImage } from "@/lib/image";
-import { useDeleteGarment, useGarment, useSaveGarment } from "@/lib/store";
+import { useDeleteGarment, useGarment, useSaveGarment, useWorn } from "@/lib/store";
+import { formatWearLine, localDateISO, wearStats } from "@/lib/wear";
 import type { Garment } from "@/lib/wardrobe";
 
 export const Route = createFileRoute("/piece/$id")({
@@ -53,6 +54,8 @@ function Piece() {
   const { data: g, isLoading } = useGarment(id);
   const save = useSaveGarment();
   const del = useDeleteGarment();
+  const cutout = usePhotoCutout();
+  const { data: worn = [] } = useWorn();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const [f, setF] = useState<GarmentFields | null>(null);
@@ -109,13 +112,68 @@ function Piece() {
   async function onPhoto(file?: File) {
     if (!file || !g || !f) return;
     try {
-      const image = await compressImage(file);
-      const { imageUrl: _imageUrl, imagePath: _imagePath, ...rest } = g;
-      await save.mutateAsync({ ...rest, ...f, name: f.name.trim() || g.name, image });
-      toast.success("Photo mise à jour");
+      const result = await cutout.run(file);
+      if (!result) return;
+      const removed = result.removed && !result.skipped;
+      const {
+        imageUrl: _imageUrl,
+        imagePath: _imagePath,
+        sourceImage: _source,
+        backgroundRemoved: _flag,
+        ...rest
+      } = g;
+      await save.mutateAsync({
+        ...rest,
+        ...f,
+        name: f.name.trim() || g.name,
+        image: removed ? result.display : result.source,
+        ...(removed ? { sourceImage: result.source, backgroundRemoved: true } : {}),
+      });
+      if (result.skipped) toast.message("Photo d'origine conservée");
+      else if (result.removed) toast.success("Fond retiré");
+      else toast.message("Détourage impossible, la photo d'origine est conservée.");
     } catch (e) {
       toast.error((e as Error).message);
     }
+  }
+
+  async function detachCurrent() {
+    if (!g || !f) return;
+    try {
+      const blob = await blobFromGarment(g);
+      if (!blob) {
+        toast.error("Ajoutez d'abord une photo.");
+        return;
+      }
+      const result = await cutout.run(blob);
+      if (!result || result.skipped) {
+        if (result?.skipped) toast.message("Détourage ignoré");
+        return;
+      }
+      if (!result.removed) {
+        toast.message("Détourage impossible, la photo d'origine est conservée.");
+        return;
+      }
+      const { imageUrl: _imageUrl, ...rest } = g;
+      await save.mutateAsync({
+        ...rest,
+        ...f,
+        name: f.name.trim() || g.name,
+        image: result.display,
+        sourceImage: result.source,
+        backgroundRemoved: true,
+      });
+      toast.success("Fond retiré");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  async function restoreOriginal() {
+    if (!g?.sourceImage || !f) return;
+    const { backgroundRemoved: _flag, sourceImage, ...rest } = g;
+    await save.mutateAsync({ ...rest, ...f, name: f.name.trim() || g.name, image: sourceImage });
+    toast.success("Photo d'origine rétablie");
   }
 
   async function keep() {
@@ -134,7 +192,27 @@ function Piece() {
       <PageHeader back eyebrow="Fiche" title={g.name} />
       <div className="grid gap-8 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <div>
-          <GarmentImage g={g} eager className="aspect-[4/5] rounded-3xl" />
+          <GarmentImage g={g} eager fit="contain" className="aspect-[4/5] rounded-3xl" />
+          {cutout.phase === "working" && (
+            <div className="mt-3">
+              <BusyStatus
+                label={cutout.label}
+                action={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-11 w-full"
+                    onClick={cutout.skip}
+                  >
+                    Ignorer le détourage
+                  </Button>
+                }
+              />
+            </div>
+          )}
+          <p className="mt-3 text-sm text-muted-foreground">
+            {formatWearLine(wearStats(g.id, worn), localDateISO())}
+          </p>
           <input
             ref={fileRef}
             type="file"
@@ -149,10 +227,35 @@ function Piece() {
             type="button"
             variant="outline"
             className="mt-4 min-h-11 w-full"
+            disabled={cutout.phase === "working"}
             onClick={() => fileRef.current?.click()}
           >
             <Camera /> Changer la photo
           </Button>
+          {g.backgroundRemoved && g.sourceImage ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-2 min-h-11 w-full"
+              disabled={cutout.phase === "working"}
+              onClick={() => void restoreOriginal()}
+            >
+              Revenir à la photo d'origine
+            </Button>
+          ) : (
+            (g.image || g.imageUrl) &&
+            !g.backgroundRemoved && (
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-2 min-h-11 w-full"
+                disabled={cutout.phase === "working"}
+                onClick={() => void detachCurrent()}
+              >
+                Détourer cette photo
+              </Button>
+            )
+          )}
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"

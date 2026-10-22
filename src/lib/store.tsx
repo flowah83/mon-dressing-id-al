@@ -1,8 +1,17 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as db from "./db";
 import { requestSync } from "./sync-bridge";
-import type { Garment, Mode, Outfit } from "./wardrobe";
+import { sameDayWear } from "./wear";
+import type { Garment, Mode, Outfit, WornEntry } from "./wardrobe";
 import tshirt from "@/assets/demo/tshirt.jpg";
 import jean from "@/assets/demo/jean.jpg";
 import blazer from "@/assets/demo/blazer.jpg";
@@ -39,15 +48,31 @@ export const useMode = () => useContext(Ctx);
 
 export function useGarments() {
   const { mode, ready } = useMode();
-  return useQuery({ queryKey: ["garments", mode], queryFn: () => db.listGarments(mode), enabled: ready });
+  return useQuery({
+    queryKey: ["garments", mode],
+    queryFn: () => db.listGarments(mode),
+    enabled: ready,
+  });
 }
 export function useOutfits() {
   const { mode, ready } = useMode();
-  return useQuery({ queryKey: ["outfits", mode], queryFn: () => db.listOutfits(mode), enabled: ready });
+  return useQuery({
+    queryKey: ["outfits", mode],
+    queryFn: () => db.listOutfits(mode),
+    enabled: ready,
+  });
+}
+export function useWorn() {
+  const { mode, ready } = useMode();
+  return useQuery({ queryKey: ["worn", mode], queryFn: () => db.listWorn(mode), enabled: ready });
 }
 export function useGarment(id: string) {
   const { ready } = useMode();
-  return useQuery({ queryKey: ["garment", id], queryFn: async () => (await db.getGarment(id)) ?? null, enabled: ready });
+  return useQuery({
+    queryKey: ["garment", id],
+    queryFn: async () => (await db.getGarment(id)) ?? null,
+    enabled: ready,
+  });
 }
 
 function stamp<T extends { updatedAt?: number }>(row: T): T {
@@ -97,6 +122,32 @@ export function useDeleteOutfit() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["outfits"] }),
   });
 }
+export function useSaveWorn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (entry: WornEntry) => {
+      const existing = await db.listWornRaw(entry.mode);
+      const same = sameDayWear(existing, entry.itemIds, entry.wornOn);
+      if (same) return same;
+      const next = stamp(entry);
+      await db.putWorn(next);
+      if (next.mode === "perso") requestSync();
+      return next;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["worn"] }),
+  });
+}
+export function useDeleteWorn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const existing = await db.getWornRaw(id);
+      await db.deleteWorn(id);
+      if (!existing || existing.mode === "perso") requestSync();
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["worn"] }),
+  });
+}
 
 /** Object URLs for blob photos, revoked on unmount. */
 export function useImageSrc(g?: Pick<Garment, "image" | "imageUrl"> | null) {
@@ -114,14 +165,78 @@ export function useImageSrc(g?: Pick<Garment, "image" | "imageUrl"> | null) {
 }
 
 const DEMO: Omit<Garment, "id" | "mode" | "createdAt" | "available" | "favorite" | "notes">[] = [
-  { name: "T-shirt blanc col rond", category: "haut", colors: ["blanc"], pattern: "uni", style: "decontracte", seasons: ["printemps", "ete", "automne"], imageUrl: tshirt },
-  { name: "Chemise oxford bleu ciel", category: "haut", colors: ["bleu"], pattern: "uni", style: "classique", seasons: ["printemps", "ete", "automne", "hiver"], imageUrl: chemise },
-  { name: "Jean droit brut", category: "bas", colors: ["denim"], pattern: "uni", style: "decontracte", seasons: ["printemps", "automne", "hiver"], imageUrl: jean },
-  { name: "Chino beige", category: "bas", colors: ["beige"], pattern: "uni", style: "classique", seasons: ["printemps", "ete", "automne"], imageUrl: chino },
-  { name: "Robe midi olive", category: "robe", colors: ["kaki"], pattern: "uni", style: "chic", seasons: ["printemps", "ete"], imageUrl: robe },
-  { name: "Blazer marine", category: "veste", colors: ["marine"], pattern: "uni", style: "classique", seasons: ["printemps", "automne", "hiver"], imageUrl: blazer },
-  { name: "Baskets cuir blanc", category: "chaussures", colors: ["blanc"], pattern: "uni", style: "minimaliste", seasons: ["printemps", "ete", "automne"], imageUrl: baskets },
-  { name: "Bottines chelsea cognac", category: "chaussures", colors: ["marron"], pattern: "uni", style: "classique", seasons: ["automne", "hiver", "printemps"], imageUrl: bottines },
+  {
+    name: "T-shirt blanc col rond",
+    category: "haut",
+    colors: ["blanc"],
+    pattern: "uni",
+    style: "decontracte",
+    seasons: ["printemps", "ete", "automne"],
+    imageUrl: tshirt,
+  },
+  {
+    name: "Chemise oxford bleu ciel",
+    category: "haut",
+    colors: ["bleu"],
+    pattern: "uni",
+    style: "classique",
+    seasons: ["printemps", "ete", "automne", "hiver"],
+    imageUrl: chemise,
+  },
+  {
+    name: "Jean droit brut",
+    category: "bas",
+    colors: ["denim"],
+    pattern: "uni",
+    style: "decontracte",
+    seasons: ["printemps", "automne", "hiver"],
+    imageUrl: jean,
+  },
+  {
+    name: "Chino beige",
+    category: "bas",
+    colors: ["beige"],
+    pattern: "uni",
+    style: "classique",
+    seasons: ["printemps", "ete", "automne"],
+    imageUrl: chino,
+  },
+  {
+    name: "Robe midi olive",
+    category: "robe",
+    colors: ["kaki"],
+    pattern: "uni",
+    style: "chic",
+    seasons: ["printemps", "ete"],
+    imageUrl: robe,
+  },
+  {
+    name: "Blazer marine",
+    category: "veste",
+    colors: ["marine"],
+    pattern: "uni",
+    style: "classique",
+    seasons: ["printemps", "automne", "hiver"],
+    imageUrl: blazer,
+  },
+  {
+    name: "Baskets cuir blanc",
+    category: "chaussures",
+    colors: ["blanc"],
+    pattern: "uni",
+    style: "minimaliste",
+    seasons: ["printemps", "ete", "automne"],
+    imageUrl: baskets,
+  },
+  {
+    name: "Bottines chelsea cognac",
+    category: "chaussures",
+    colors: ["marron"],
+    pattern: "uni",
+    style: "classique",
+    seasons: ["automne", "hiver", "printemps"],
+    imageUrl: bottines,
+  },
 ];
 
 export async function seedDemo() {
@@ -130,7 +245,15 @@ export async function seedDemo() {
   const now = Date.now();
   await Promise.all(
     DEMO.map((d, i) =>
-      db.putGarment({ ...d, id: `demo-${i}`, mode: "demo", available: true, favorite: false, notes: "", createdAt: now - i * 1000 }),
+      db.putGarment({
+        ...d,
+        id: `demo-${i}`,
+        mode: "demo",
+        available: true,
+        favorite: false,
+        notes: "",
+        createdAt: now - i * 1000,
+      }),
     ),
   );
 }

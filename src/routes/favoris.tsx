@@ -2,7 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Collage, EmptyState, GarmentCard, Page, PageHeader } from "@/components/vestiaire/ui";
+import { WearTodayButton } from "@/components/vestiaire/WearTodayButton";
+import {
+  Collage,
+  EmptyState,
+  GarmentCard,
+  HistoryLink,
+  Page,
+  PageHeader,
+} from "@/components/vestiaire/ui";
 import { useDeleteOutfit, useGarments, useOutfits, useSaveOutfit } from "@/lib/store";
 import type { Outfit } from "@/lib/wardrobe";
 
@@ -27,7 +35,7 @@ function Favoris() {
   const empty = !isLoading && outfits.length === 0 && favorites.length === 0;
   return (
     <Page>
-      <PageHeader eyebrow="Ce que vous aimez" title="Favoris" />
+      <PageHeader eyebrow="Ce que vous aimez" title="Favoris" action={<HistoryLink />} />
       {empty && (
         <EmptyState
           title="Rien en favori"
@@ -90,6 +98,7 @@ function Favoris() {
                     >
                       <ThumbsDown className="size-4" /> Moins mon style
                     </button>
+                    <WearTodayButton itemIds={o.itemIds} name={o.name} outfitId={o.id} />
                     <button
                       type="button"
                       className="chip"

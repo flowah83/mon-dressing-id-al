@@ -19,4 +19,9 @@ describe("App routing", () => {
     const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
     expect(router.matchRoutes("/compte").at(-1)?.routeId).toBe("/compte");
   });
+
+  it("matches the outfit history page", () => {
+    const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
+    expect(router.matchRoutes("/historique").at(-1)?.routeId).toBe("/historique");
+  });
 });
