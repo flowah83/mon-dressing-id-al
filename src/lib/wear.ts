@@ -132,6 +132,33 @@ export function groupWornByDate<T extends { wornOn: string; createdAt: number }>
     .map(([wornOn, items]) => ({ wornOn, entries: items }));
 }
 
+/** Lundi → dimanche de la semaine qui contient `today`. */
+export function weekDates(today: string): string[] {
+  const date = parseISODate(today);
+  if (!date) return [];
+  date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+  return Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(date);
+    day.setDate(date.getDate() + index);
+    return localDateISO(day);
+  });
+}
+
+/** Jours d'affilée, aujourd'hui inclus s'il est noté, sinon jusqu'à hier. */
+export function wearStreak(
+  entries: { wornOn: string; deletedAt?: number | undefined }[],
+  today: string,
+): number {
+  const days = new Set(entries.filter((entry) => !entry.deletedAt).map((entry) => entry.wornOn));
+  let cursor = days.has(today) ? today : shiftISODate(today, -1);
+  let count = 0;
+  while (cursor && days.has(cursor) && count < 366) {
+    count += 1;
+    cursor = shiftISODate(cursor, -1);
+  }
+  return count;
+}
+
 export function wornFromBackup(raw: unknown, now = Date.now()): WornEntry {
   if (!raw || typeof raw !== "object")
     throw new Error("Ce fichier n'est pas une sauvegarde Vestiaire.");

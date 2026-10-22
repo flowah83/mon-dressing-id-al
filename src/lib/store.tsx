@@ -10,7 +10,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as db from "./db";
 import { requestSync } from "./sync-bridge";
-import { sameDayWear } from "./wear";
+import { localDateISO, sameDayWear, shiftISODate } from "./wear";
 import type { Garment, Mode, Outfit, WornEntry } from "./wardrobe";
 import tshirt from "@/assets/demo/tshirt.jpg";
 import jean from "@/assets/demo/jean.jpg";
@@ -250,11 +250,31 @@ export async function seedDemo() {
         id: `demo-${i}`,
         mode: "demo",
         available: true,
-        favorite: false,
+        favorite: i === 0,
         notes: "",
         createdAt: now - i * 1000,
       }),
     ),
+  );
+  const today = localDateISO();
+  const samples = [
+    { shift: -1, ids: ["demo-1", "demo-3", "demo-7"], name: "Chemise et chino" },
+    { shift: -2, ids: ["demo-4", "demo-7"], name: "Robe midi" },
+    { shift: -4, ids: ["demo-5"], name: "Blazer marine" },
+  ];
+  await Promise.all(
+    samples.map((sample, index) => {
+      const wornOn = shiftISODate(today, sample.shift);
+      if (!wornOn) return Promise.resolve();
+      return db.putWorn({
+        id: `demo-worn-${index}`,
+        mode: "demo",
+        wornOn,
+        itemIds: sample.ids,
+        name: sample.name,
+        createdAt: now - index,
+      });
+    }),
   );
 }
 

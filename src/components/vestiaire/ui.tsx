@@ -9,7 +9,8 @@ import {
   Shirt,
   Sparkles,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { flattenCatalogue } from "@/lib/catalogue-photo";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/lib/account";
 import { cn } from "@/lib/utils";
-import { useDemoControls, useImageSrc, useMode } from "@/lib/store";
+import { useDemoControls, useImageSrc, useMode, useSaveGarment } from "@/lib/store";
 import { COLORS, catLabel, colorInfo, type Garment } from "@/lib/wardrobe";
 
 export function BottomNav() {
@@ -37,8 +38,9 @@ export function BottomNav() {
     return (
       <Link
         to={to}
+        data-active={active ? "true" : "false"}
         className={cn(
-          "flex min-h-14 flex-1 flex-col items-center justify-center gap-1 text-[0.7rem] font-medium",
+          "tab-link press flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium",
           active ? "text-primary" : "text-muted-foreground",
         )}
       >
@@ -50,7 +52,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Navigation principale"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur pb-safe md:inset-x-auto md:left-1/2 md:bottom-5 md:w-[36rem] md:-translate-x-1/2 md:rounded-full md:border md:pb-0 md:shadow-lift"
+      className="tabbar fixed inset-x-0 bottom-0 z-40 border-t border-border backdrop-blur pb-safe md:inset-x-auto md:left-1/2 md:bottom-5 md:w-[36rem] md:-translate-x-1/2 md:rounded-full md:border md:pb-0 md:shadow-lift"
     >
       <div className="mx-auto flex max-w-lg items-end px-1">
         {item("/", "Dressing", Shirt)}
@@ -58,9 +60,13 @@ export function BottomNav() {
         <Link
           to="/ajouter"
           aria-label="Ajouter une pièce"
-          className="flex min-h-14 flex-1 flex-col items-center justify-center gap-1 pb-1 text-[0.7rem] font-medium text-muted-foreground"
+          data-active={pathname.startsWith("/ajouter") ? "true" : "false"}
+          className={cn(
+            "tab-link press flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 pb-1 text-xs font-medium",
+            pathname.startsWith("/ajouter") ? "text-primary" : "text-muted-foreground",
+          )}
         >
-          <span className="-mt-6 grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-lift md:mt-0 md:size-12">
+          <span className="tab-plus -mt-5 grid size-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lift md:mt-0">
             <Plus className="size-6" />
           </span>
           Ajouter
@@ -72,7 +78,7 @@ export function BottomNav() {
   );
 }
 
-export function BackButton() {
+export function BackButton({ icon = false }: { icon?: boolean }) {
   const router = useRouter();
   return (
     <button
@@ -81,11 +87,73 @@ export function BackButton() {
         if (typeof window !== "undefined" && window.history.length > 1) router.history.back();
         else void router.navigate({ to: "/" });
       }}
-      className="-ml-2 inline-flex min-h-11 items-center gap-0.5 pr-3 text-sm font-medium"
+      className={
+        icon
+          ? "ios-back press grid size-11 place-items-center"
+          : "-ml-2 inline-flex min-h-11 items-center gap-0.5 pr-3 text-sm font-medium"
+      }
+      aria-label="Retour"
     >
-      <ChevronLeft className="size-5" />
-      Retour
+      <ChevronLeft className={icon ? "size-7" : "size-5"} strokeWidth={icon ? 2.25 : 2} />
+      {icon ? null : "Retour"}
     </button>
+  );
+}
+
+export function IosChrome() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!root.dataset["theme"]?.startsWith("apple")) return;
+    const onScroll = () => {
+      const p = Math.min(1, Math.max(0, window.scrollY / 48));
+      root.style.setProperty("--title-p", p.toFixed(3));
+      root.dataset["collapsed"] = p > 0.65 ? "true" : "false";
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [pathname]);
+  return (
+    <div className="ios-status" aria-hidden>
+      <span className="ios-island" />
+      <span className="ios-time">9:41</span>
+      <span className="ios-glyphs">
+        <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor">
+          <rect x="0" y="7" width="3" height="5" rx="0.6" />
+          <rect x="5" y="4.5" width="3" height="7.5" rx="0.6" />
+          <rect x="10" y="2" width="3" height="10" rx="0.6" />
+          <rect x="15" y="0" width="3" height="12" rx="0.6" />
+        </svg>
+        <svg
+          width="16"
+          height="12"
+          viewBox="0 0 16 12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        >
+          <path d="M1 4.2C3.2 2 6.2 1 8 1s4.8 1 7 3.2" />
+          <path d="M3.2 6.6C4.6 5.2 6.3 4.5 8 4.5s3.4.7 4.8 2.1" />
+          <path d="M5.6 9.1c.7-.7 1.5-1 2.4-1s1.7.3 2.4 1" />
+        </svg>
+        <svg width="27" height="13" viewBox="0 0 27 13" fill="currentColor">
+          <rect
+            x="0.5"
+            y="0.5"
+            width="22"
+            height="12"
+            rx="3"
+            fill="none"
+            stroke="currentColor"
+            strokeOpacity="0.4"
+          />
+          <rect x="2" y="2" width="16" height="9" rx="1.4" />
+          <path d="M24 4.2v4.6c.8-.3 1.5-1.2 1.5-2.3S24.8 4.5 24 4.2z" opacity="0.4" />
+        </svg>
+      </span>
+    </div>
   );
 }
 
@@ -103,16 +171,23 @@ export function PageHeader({
   compact?: boolean;
 }) {
   return (
-    <header className="pt-safe pb-4">
-      {back && <BackButton />}
+    <header className="page-header pt-safe pb-4">
+      <div className="ios-bar">
+        <div className="ios-bar-side">{back ? <BackButton icon /> : null}</div>
+        <p className="ios-inline-title">{title}</p>
+        <div className="ios-bar-side ios-bar-end">{action}</div>
+      </div>
+      {back ? (
+        <div className="flow-back">
+          <BackButton />
+        </div>
+      ) : null}
       <div className="flex items-end justify-between gap-4">
         <div className="min-w-0">
           {eyebrow && <p className="eyebrow mb-1">{eyebrow}</p>}
-          <h1 className={compact ? "text-3xl leading-none" : "text-4xl leading-none md:text-5xl"}>
-            {title}
-          </h1>
+          <h1 className={compact ? "leading-[1.05]" : "leading-[1.05] md:text-5xl"}>{title}</h1>
         </div>
-        {action}
+        <div className="large-action">{action}</div>
       </div>
     </header>
   );
@@ -122,7 +197,7 @@ export function HistoryLink() {
   return (
     <Link
       to="/historique"
-      className="inline-flex min-h-11 items-center px-1 text-sm font-medium text-primary"
+      className="inline-flex min-h-11 items-center px-1 text-[17px] font-normal text-primary"
     >
       Historique
     </Link>
@@ -132,7 +207,10 @@ export function HistoryLink() {
 export function BusyStatus({ label, action }: { label: string; action?: ReactNode }) {
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3 rounded-2xl bg-card p-5 text-sm" role="status">
+      <div
+        className="flex items-center gap-3 rounded-[var(--radius-card)] bg-card p-5 text-sm shadow-soft"
+        role="status"
+      >
         <Loader2 className="size-5 shrink-0 animate-spin text-primary" />
         <span>{label}</span>
       </div>
@@ -146,7 +224,7 @@ export function SettingsLink() {
     <Link
       to="/reglages"
       aria-label="Réglages, compte et sauvegarde"
-      className="grid size-11 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground"
+      className="settings-link grid size-11 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground"
     >
       <Settings2 className="size-5" />
     </Link>
@@ -154,7 +232,9 @@ export function SettingsLink() {
 }
 
 export function Page({ children }: { children: ReactNode }) {
-  return <main className="mx-auto w-full max-w-5xl px-5 pb-nav md:px-8">{children}</main>;
+  return (
+    <main className="page-enter mx-auto w-full max-w-5xl px-5 pb-nav md:px-8">{children}</main>
+  );
 }
 
 export function DemoBanner() {
@@ -163,25 +243,36 @@ export function DemoBanner() {
   const [confirmClear, setConfirmClear] = useState(false);
   if (mode !== "demo") return null;
   return (
-    <div className="sticky top-0 z-30 bg-demo text-demo-foreground">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-5 pt-safe pb-2 text-sm md:px-8">
-        <span className="font-semibold">Mode démonstration · pièces d'exemple</span>
-        <span className="flex gap-1">
+    <div className="demo-banner sticky top-0 z-30 bg-demo text-demo-foreground">
+      <div className="demo-bar mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-1 text-sm md:px-8">
+        <span className="font-semibold">Exemple · pas vos vêtements</span>
+        <span className="flex shrink-0">
           <button
             type="button"
-            className="min-h-11 px-2 underline underline-offset-4"
+            className="demo-action press min-h-11 px-2 underline underline-offset-4"
             onClick={() => demo.exit()}
           >
-            Mon dressing
+            Quitter
           </button>
           <button
             type="button"
-            className="min-h-11 px-2 underline underline-offset-4"
+            className="demo-action press min-h-11 px-2 underline underline-offset-4"
             onClick={() => setConfirmClear(true)}
           >
-            Effacer la démo
+            Effacer
           </button>
         </span>
+      </div>
+      <div className="demo-pill">
+        <span>Exemple</span>
+        <span aria-hidden>·</span>
+        <button type="button" className="press" onClick={() => demo.exit()}>
+          Quitter
+        </button>
+        <span aria-hidden>·</span>
+        <button type="button" className="press" onClick={() => setConfirmClear(true)}>
+          Effacer
+        </button>
       </div>
       <AlertDialog open={confirmClear} onOpenChange={setConfirmClear}>
         <AlertDialogContent>
@@ -213,24 +304,46 @@ export function GarmentImage({
   g,
   className,
   eager,
-  fit = "cover",
 }: {
   g: Pick<Garment, "image" | "imageUrl" | "name">;
   className?: string;
   eager?: boolean;
-  fit?: "cover" | "contain";
 }) {
-  const src = useImageSrc(g);
+  const raw = useImageSrc(g);
+  const [shown, setShown] = useState(raw);
+  const [mark, setMark] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!raw) {
+      setShown(undefined);
+      setMark(undefined);
+      return;
+    }
+    const apple = document.documentElement.dataset["theme"]?.startsWith("apple") ?? false;
+    if (!apple) {
+      setShown(raw);
+      setMark("0");
+      return;
+    }
+    let cancel = false;
+    setMark(undefined);
+    void flattenCatalogue(raw).then((url) => {
+      if (cancel) return;
+      setShown(url);
+      setMark(url !== raw ? "1" : "0");
+    });
+    return () => {
+      cancel = true;
+    };
+  }, [raw]);
   return (
-    <div className={cn("overflow-hidden bg-photo", className)}>
-      {src ? (
+    <div className={cn("garment-photo overflow-hidden bg-photo", className)}>
+      {shown ? (
         <img
-          src={src}
+          src={shown}
           alt={g.name}
           loading={eager ? "eager" : "lazy"}
-          className={
-            fit === "contain" ? "h-full w-full object-contain" : "h-full w-full object-cover"
-          }
+          data-flat={mark}
+          className="h-full w-full"
         />
       ) : (
         <div className="h-full w-full animate-pulse bg-muted" />
@@ -239,7 +352,7 @@ export function GarmentImage({
   );
 }
 
-export function Swatch({ color, size = "sm" }: { color: string; size?: "sm" | "md" }) {
+export function Swatch({ color, size = "sm" }: { color: string; size?: "sm" | "md" | "dot" }) {
   const c = colorInfo(color);
   const bg = c?.hex ?? "transparent";
   return (
@@ -247,7 +360,7 @@ export function Swatch({ color, size = "sm" }: { color: string; size?: "sm" | "m
       title={c?.label ?? color}
       className={cn(
         "inline-block shrink-0 rounded-full border border-border",
-        size === "sm" ? "size-3.5" : "size-6",
+        size === "dot" ? "meta-dot" : size === "sm" ? "size-3.5" : "size-6",
       )}
       style={{ background: bg }}
     />
@@ -255,8 +368,9 @@ export function Swatch({ color, size = "sm" }: { color: string; size?: "sm" | "m
 }
 
 export function GarmentCard({ g }: { g: Garment }) {
+  const save = useSaveGarment();
   return (
-    <Link to="/piece/$id" params={{ id: g.id }} className="group block">
+    <Link to="/piece/$id" params={{ id: g.id }} className="press group block">
       <div className="relative">
         <GarmentImage
           g={g}
@@ -265,11 +379,29 @@ export function GarmentCard({ g }: { g: Garment }) {
             !g.available && "opacity-50",
           )}
         />
-        {g.favorite && (
-          <span className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-card/90 text-primary">
-            <Heart className="size-4 fill-current" />
+        <button
+          type="button"
+          className="heart-btn absolute right-1.5 top-1.5 grid size-11 place-items-center"
+          aria-label={g.favorite ? "Retirer des favoris" : "Mettre en favori"}
+          aria-pressed={g.favorite}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            save.mutate({ ...g, favorite: !g.favorite });
+          }}
+        >
+          <span
+            className={cn(
+              "heart-face grid size-8 place-items-center rounded-full bg-card/90 text-primary",
+              g.favorite && "is-on",
+            )}
+          >
+            <Heart
+              className={cn("size-[18px]", g.favorite && "fill-current")}
+              strokeWidth={g.favorite ? 0 : 1.75}
+            />
           </span>
-        )}
+        </button>
         {!g.available && (
           <span className="absolute left-2 top-2 rounded-full bg-card/90 px-2.5 py-1 text-xs font-medium">
             Au lavage
@@ -277,11 +409,9 @@ export function GarmentCard({ g }: { g: Garment }) {
         )}
       </div>
       <div className="mt-2 px-0.5">
-        <p className="truncate text-sm font-medium">{g.name}</p>
-        <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-          {g.colors.slice(0, 3).map((c) => (
-            <Swatch key={c} color={c} />
-          ))}
+        <p className="garment-name truncate text-sm font-medium">{g.name}</p>
+        <div className="garment-meta mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+          {g.colors[0] ? <Swatch color={g.colors[0]} size="dot" /> : null}
           <span className="truncate">{catLabel(g.category)}</span>
         </div>
       </div>
@@ -322,7 +452,10 @@ export function Collage({ items, className }: { items: Garment[]; className?: st
   const [first, ...rest] = items;
   return (
     <div
-      className={cn("grid aspect-square grid-cols-2 gap-1.5 rounded-2xl bg-photo p-1.5", className)}
+      className={cn(
+        "outfit-reveal grid aspect-square grid-cols-2 gap-1.5 rounded-2xl bg-photo p-1.5",
+        className,
+      )}
     >
       <GarmentImage
         g={first!}
@@ -342,6 +475,29 @@ export function Collage({ items, className }: { items: Garment[]; className?: st
   );
 }
 
+function EmptyMark() {
+  return (
+    <svg
+      className="mx-auto mb-4 text-foreground"
+      width="72"
+      height="72"
+      viewBox="0 0 72 72"
+      aria-hidden
+    >
+      <circle cx="36" cy="36" r="34" fill="var(--photo)" />
+      <path
+        d="M36 16c4.5 0 7 3.2 7 6.2 0 2.4-1.6 3.8-3.6 4.1L36 28 18 42h36L36 28"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M26 50h20" stroke="var(--primary)" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function EmptyState({
   title,
   text,
@@ -352,8 +508,9 @@ export function EmptyState({
   children?: ReactNode;
 }) {
   return (
-    <div className="rounded-3xl border border-dashed border-border bg-card px-6 py-12 text-center">
-      <h2 className="text-3xl">{title}</h2>
+    <div className="rounded-[var(--radius-card)] border border-dashed border-border bg-card px-6 py-12 text-center">
+      <EmptyMark />
+      <h2 className="text-[1.75rem] leading-none">{title}</h2>
       <p className="mx-auto mt-2 max-w-sm text-muted-foreground">{text}</p>
       {children && <div className="mt-6 flex flex-col items-center gap-3">{children}</div>}
     </div>

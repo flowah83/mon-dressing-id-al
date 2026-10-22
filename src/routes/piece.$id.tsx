@@ -189,10 +189,10 @@ function Piece() {
 
   return (
     <Page>
-      <PageHeader back eyebrow="Fiche" title={g.name} />
+      <PageHeader back title={g.name} />
       <div className="grid gap-8 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <div>
-          <GarmentImage g={g} eager fit="contain" className="aspect-[4/5] rounded-3xl" />
+          <GarmentImage g={g} eager className="h-[500px] w-full rounded-[18px]" />
           {cutout.phase === "working" && (
             <div className="mt-3">
               <BusyStatus
@@ -210,8 +210,15 @@ function Piece() {
               />
             </div>
           )}
-          <p className="mt-3 text-sm text-muted-foreground">
-            {formatWearLine(wearStats(g.id, worn), localDateISO())}
+          <p
+            className="mt-4 text-[15px] text-muted-foreground"
+            title={formatWearLine(wearStats(g.id, worn), localDateISO())}
+          >
+            {(() => {
+              const stats = wearStats(g.id, worn);
+              if (stats.count <= 0) return "Jamais portée";
+              return stats.count === 1 ? "Portée 1 fois" : `Portée ${stats.count} fois`;
+            })()}
           </p>
           <input
             ref={fileRef}
@@ -223,15 +230,14 @@ function Piece() {
               e.target.value = "";
             }}
           />
-          <Button
+          <button
             type="button"
-            variant="outline"
-            className="mt-4 min-h-11 w-full"
+            className="photo-change press mt-4 flex w-full items-center justify-center gap-2"
             disabled={cutout.phase === "working"}
             onClick={() => fileRef.current?.click()}
           >
-            <Camera /> Changer la photo
-          </Button>
+            <Camera className="size-5" /> Changer la photo
+          </button>
           {g.backgroundRemoved && g.sourceImage ? (
             <Button
               type="button"

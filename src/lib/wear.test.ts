@@ -11,6 +11,8 @@ import {
   sameDayWear,
   shiftISODate,
   wearStats,
+  wearStreak,
+  weekDates,
   wornFromBackup,
 } from "./wear";
 
@@ -22,6 +24,18 @@ describe("historique des tenues", () => {
     expect(isWithinRecentDays("2026-10-17", "2026-10-22")).toBe(false);
     expect(isWithinRecentDays("2026-10-23", "2026-10-22")).toBe(false);
     expect(isWithinRecentDays("hier", "2026-10-22")).toBe(false);
+    expect(weekDates("2026-10-22")).toEqual([
+      "2026-10-19",
+      "2026-10-20",
+      "2026-10-21",
+      "2026-10-22",
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25",
+    ]);
+    expect(wearStreak([{ wornOn: "2026-10-21" }, { wornOn: "2026-10-20" }], "2026-10-22")).toBe(2);
+    expect(wearStreak([{ wornOn: "2026-10-22" }, { wornOn: "2026-10-21" }], "2026-10-22")).toBe(2);
+    expect(wearStreak([{ wornOn: "2026-10-20" }], "2026-10-22")).toBe(0);
   });
 
   it("reconnaît la même tenue le même jour, quel que soit l'ordre", () => {

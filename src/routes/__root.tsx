@@ -15,7 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AccountProvider } from "@/lib/account";
 import { shouldRegisterServiceWorker } from "@/lib/pwa";
 import { ModeProvider } from "@/lib/store";
-import { BottomNav, DemoBanner } from "@/components/vestiaire/ui";
+import { BottomNav, DemoBanner, IosChrome } from "@/components/vestiaire/ui";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -80,7 +80,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1, viewport-fit=cover",
+      },
       { title: "Vestiaire — votre dressing et vos tenues" },
       {
         name: "description",
@@ -93,10 +96,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "theme-color", content: "#f8f4ec" },
+      { name: "theme-color", content: "#F2F2F7" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "Vestiaire" },
     ],
     links: [
@@ -104,12 +107,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", type: "image/png", href: "/favicon.png" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Manrope:wght@400;500;600;700&display=swap",
-      },
     ],
   }),
   shellComponent: RootShell,
@@ -120,9 +117,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="fr">
+    <html lang="fr" data-theme="apple">
       <head>
         <HeadContent />
+        <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var r=document.documentElement,q=matchMedia('(prefers-color-scheme: dark)');var a=function(){r.dataset.theme=q.matches?'apple-sombre':'apple';};a();q.addEventListener('change',a);}catch(e){}",
+          }}
+        />
       </head>
       <body>
         {children}
@@ -159,11 +164,12 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AccountProvider>
         <ModeProvider>
+          <IosChrome />
           <OfflineNote />
           <DemoBanner />
           <Outlet />
           <BottomNav />
-          <Toaster position="top-center" />
+          <Toaster position="bottom-center" offset={108} />
         </ModeProvider>
       </AccountProvider>
     </QueryClientProvider>

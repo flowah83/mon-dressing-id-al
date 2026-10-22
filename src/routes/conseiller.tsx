@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Heart, Loader2, Sparkles } from "lucide-react";
+import { Heart, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { StreakPill, SwipeCard, WearNote } from "@/components/vestiaire/ritual";
 import { WeatherCard } from "@/components/vestiaire/WeatherCard";
-import { Collage, EmptyState, HistoryLink, Page, PageHeader } from "@/components/vestiaire/ui";
+import { Collage, EmptyState, Page, PageHeader } from "@/components/vestiaire/ui";
 import { WearTodayButton } from "@/components/vestiaire/WearTodayButton";
 import { useAuth } from "@/lib/account";
 import { adviseOutfits } from "@/lib/ai.functions";
@@ -15,13 +16,15 @@ import { findOutfitByPieces, outfitKey } from "@/lib/outfit-match";
 import { generateOutfits, type AdvisorResult } from "@/lib/rules";
 import { sliderChangeIsDeliberate } from "@/lib/slider-intent";
 import { useGarments, useMode, useOutfits, useSaveOutfit, useWorn } from "@/lib/store";
-import { localDateISO, neverWornHint } from "@/lib/wear";
+import { localDateISO, neverWornHint, wearStreak } from "@/lib/wear";
 import {
   adviceTemperature,
+  formatWeatherLines,
   TEMP_MAX,
   TEMP_MIN,
   toAdviceWeather,
   toWeatherHints,
+  weatherLabel,
 } from "@/lib/weather";
 import { useAdvisorWeather } from "@/hooks/use-advisor-weather";
 import {
@@ -80,6 +83,11 @@ function Conseiller() {
     error?: string;
     advice?: { index: number; title: string; text: string }[];
   }>({ loading: false });
+  const [shift, setShift] = useState(0);
+  const [celebrate, setCelebrate] = useState(false);
+  const [held, setHeld] = useState<{ itemIds: string[]; reasons: string[]; title: string } | null>(
+    null,
+  );
   const pointer = useRef({ active: false, x: 0, y: 0, moved: 0 });
   const autoRef = useRef("");
   const proposeRef = useRef<() => Promise<void>>(async () => {});
@@ -185,16 +193,31 @@ function Conseiller() {
       .filter((garment) => !worn.some((entry) => entry.itemIds.includes(garment.id)))
       .map((garment) => garment.name),
   );
+  const indexed = (res?.proposals ?? []).map((proposal, index) => ({ proposal, index }));
+  const turn = indexed.length ? shift % indexed.length : 0;
+  const ordered = indexed.length ? [...indexed.slice(turn), ...indexed.slice(0, turn)] : [];
+  const hero = ordered[0];
+  const shownIds = held?.itemIds ?? hero?.proposal.itemIds ?? [];
+  const heroPieces = piecesOf(shownIds);
+  const heroAdvice = hero
+    ? (ai.advice?.find((item) => item.index === hero.index) ?? ai.advice?.[hero.index])
+    : undefined;
+  const heroTitle = held
+    ? held.title
+    : hero && hero.index === 0 && daily
+      ? "Tenue du jour"
+      : (heroAdvice?.title ?? (hero ? `Tenue ${hero.index + 1}` : "Tenue du jour"));
+  const heroReasons = held?.reasons ?? hero?.proposal.reasons ?? [];
 
   return (
     <Page>
       <PageHeader
-        eyebrow={mode === "demo" ? "Démonstration" : "Avec vos pièces"}
-        title="Conseiller"
-        action={<HistoryLink />}
+        eyebrow={mode === "demo" ? "Exemple" : "Aujourd'hui"}
+        title="Tenue du jour"
+        action={<StreakPill count={wearStreak(worn, localDateISO())} />}
       />
       {auth.ready && !auth.user && (
-        <p className="mb-4 text-sm text-muted-foreground">
+        <p className="mb-4 text-[15px] leading-5 text-[color:var(--label-secondary)]">
           {auth.configured
             ? "Les tenues sont composées avec vos pièces. Le texte du styliste demande une connexion."
             : "Le texte du styliste sera disponible avec le compte en ligne. Les règles de style fonctionnent déjà."}
@@ -217,27 +240,92 @@ function Conseiller() {
         </EmptyState>
       ) : (
         <div className="space-y-5">
-          <WeatherCard
-            state={weather.state}
-            manual={manual}
-            onRetry={weather.retry}
-            onUseForecast={() => {
-              if (!snapshot) return;
-              setManual(false);
-              setTemp(adviceTemperature(snapshot));
-            }}
-          />
-          <p className="text-sm leading-relaxed">
-            {followed
-              ? `La tenue du jour suit le ressenti (${temperature} °C), pour un usage quotidien. La pluie et le vent, s'ils sont connus, ajoutent une couche.`
-              : weather.state.reason === "denied"
-                ? "Sans localisation, seule la température du curseur compte. La pluie et le vent restent inconnus."
-                : manual
-                  ? "Vous avez quitté le ressenti : la tenue suit la température du curseur."
-                  : "Dès que la météo est connue, une tenue du jour est proposée (quotidien, ressenti)."}
-          </p>
+          {shownIds.length > 0 ? (
+            <SwipeCard
+              key={shownIds.join("-")}
+              onLike={() => void keep(shownIds, heroTitle, heroAdvice?.text)}
+              onNext={() => {
+                setHeld(null);
+                setShift((value) => value + 1);
+              }}
+            >
+              <article className="hero-card relative overflow-hidden bg-card shadow-soft">
+                <WearNote show={celebrate} />
+                <Collage items={heroPieces} />
+                <div className="hero-body">
+                  {snapshot && (
+                    <p className="weather-inline">
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 14 14"
+                        aria-hidden
+                        className="shrink-0 text-primary"
+                      >
+                        <path
+                          d="M7 1.2 7.7 4.4 11 4.2 8.6 6.2 9.8 9.2 7 7.4 4.2 9.2 5.4 6.2 3 4.2 6.3 4.4Z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                      {formatWeatherLines(snapshot).title} · {weatherLabel(snapshot.weatherCode)}
+                    </p>
+                  )}
+                  <p className="hero-names">{heroPieces.map((g) => g.name).join(" · ")}</p>
+                  {heroAdvice?.text ? (
+                    <p className="hero-reason">
+                      <span className="font-semibold text-foreground">Conseil IA. </span>
+                      {heroAdvice.text}
+                    </p>
+                  ) : (
+                    heroReasons[0] && <p className="hero-reason">{heroReasons[0]}</p>
+                  )}
+                  <div className="mt-4">
+                    <WearTodayButton
+                      itemIds={shownIds}
+                      name={heroTitle}
+                      className="ios-fill w-full"
+                      onNoted={() => {
+                        setHeld({ itemIds: shownIds, reasons: heroReasons, title: heroTitle });
+                        setCelebrate(true);
+                        window.setTimeout(() => setCelebrate(false), 1600);
+                      }}
+                    />
+                  </div>
+                  <div className="hero-actions">
+                    <button
+                      type="button"
+                      className="chip press"
+                      onClick={() => {
+                        setHeld(null);
+                        setShift((value) => value + 1);
+                      }}
+                    >
+                      Une autre idée
+                    </button>
+                    <button
+                      type="button"
+                      className="chip press"
+                      onClick={() =>
+                        void keep(shownIds, heroTitle, heroAdvice?.text ?? heroReasons[0])
+                      }
+                    >
+                      <Heart className="size-4" /> {known(shownIds) ? "Gardée" : "Garder"}
+                    </button>
+                  </div>
+                </div>
+              </article>
+            </SwipeCard>
+          ) : res && res.proposals.length === 0 ? (
+            <p className="text-[15px] text-muted-foreground">
+              Aucune tenue avec ces réglages. Ajustez la proposition, ou ajoutez des pièces.
+            </p>
+          ) : (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" /> Préparation de votre tenue…
+            </p>
+          )}
 
-          <details className="rounded-3xl bg-card p-4 shadow-soft">
+          <details className="rounded-[var(--radius-card)] bg-card p-4 shadow-soft">
             <summary className="min-h-11 cursor-pointer text-base font-medium">
               Ajuster la proposition
             </summary>
@@ -369,30 +457,49 @@ function Conseiller() {
                   </select>
                 </label>
               </div>
+              <div className="mt-5 space-y-3">
+                {res && res.missing.length > 0 && (
+                  <div>
+                    <p className="font-medium">Il manque pour composer une tenue :</p>
+                    <ul className="mt-2 list-disc pl-5 text-sm text-muted-foreground">
+                      {res.missing.map((m) => (
+                        <li key={m}>{m}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {res?.notes.map((n) => (
+                  <p key={n} className="text-sm text-muted-foreground">
+                    {n}
+                  </p>
+                ))}
+                {unwornHint && <p className="text-sm text-muted-foreground">{unwornHint}</p>}
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {followed
+                    ? `La tenue suit le ressenti (${temperature} °C), pour un usage quotidien. La pluie et le vent, s'ils sont connus, ajoutent une couche.`
+                    : weather.state.reason === "denied"
+                      ? "Sans localisation, seule la température du curseur compte. La pluie et le vent restent inconnus."
+                      : manual
+                        ? "Vous avez quitté le ressenti : la tenue suit la température du curseur."
+                        : "Dès que la météo est connue, une tenue du jour est proposée."}
+                </p>
+                <WeatherCard
+                  state={weather.state}
+                  manual={manual}
+                  onRetry={weather.retry}
+                  onUseForecast={() => {
+                    if (!snapshot) return;
+                    setManual(false);
+                    setTemp(adviceTemperature(snapshot));
+                  }}
+                />
+                <Button className="ios-fill w-full" onClick={() => void propose(true)}>
+                  Demander le texte du styliste
+                </Button>
+              </div>
             </div>
           </details>
 
-          {!res && weather.state.phase === "loading" && (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" /> Préparation de la tenue du jour…
-            </p>
-          )}
-
-          {res && res.missing.length > 0 && (
-            <div className="rounded-2xl border border-border bg-card p-5">
-              <p className="font-medium">Il manque pour composer une tenue :</p>
-              <ul className="mt-2 list-disc pl-5 text-sm text-muted-foreground">
-                {res.missing.map((m) => (
-                  <li key={m}>{m}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {res?.notes.map((n) => (
-            <p key={n} className="text-sm text-muted-foreground">
-              {n}
-            </p>
-          ))}
           {ai.loading && (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" /> Conseil du styliste en cours…
@@ -400,68 +507,9 @@ function Conseiller() {
           )}
           {ai.error && (
             <p className="text-sm text-muted-foreground">
-              {ai.error} Les explications ci-dessous viennent des règles de style.
+              {ai.error} L'explication affichée vient des règles de style.
             </p>
           )}
-          {res && res.proposals.length > 0 && (
-            <h2 className="text-3xl">{daily ? "La tenue du jour" : "Propositions"}</h2>
-          )}
-          {unwornHint && <p className="text-sm text-muted-foreground">{unwornHint}</p>}
-          <div className="grid gap-6 md:grid-cols-3">
-            {res?.proposals.map((p, i) => {
-              const pieces = piecesOf(p.itemIds);
-              const adv = ai.advice?.find((a) => a.index === i) ?? ai.advice?.[i];
-              const already = known(p.itemIds);
-              const title =
-                i === 0 && daily
-                  ? (adv?.title ?? "La tenue du jour")
-                  : (adv?.title ?? `Tenue ${i + 1}`);
-              return (
-                <article key={p.itemIds.join()} className="rounded-3xl bg-card p-3 shadow-soft">
-                  <Collage items={pieces} />
-                  <div className="p-2">
-                    {i === 0 && daily && <p className="eyebrow mt-2">Pour aujourd'hui</p>}
-                    <h2 className="mt-2 text-2xl">{title}</h2>
-                    <p className="mt-1 text-sm">{pieces.map((g) => g.name).join(" · ")}</p>
-                    {adv && (
-                      <p className="mt-3 rounded-xl bg-accent p-3 text-sm text-accent-foreground">
-                        <Sparkles className="mr-1 inline size-3.5" /> {adv.text}
-                      </p>
-                    )}
-                    <p className="eyebrow mt-3">Règles de style</p>
-                    <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
-                      {p.reasons.map((r) => (
-                        <li key={r}>· {r}</li>
-                      ))}
-                    </ul>
-                    <Button
-                      variant={already ? "secondary" : "outline"}
-                      size="default"
-                      className="mt-4 min-h-11 w-full"
-                      disabled={already}
-                      onClick={() => void keep(p.itemIds, title, adv?.text)}
-                    >
-                      <Heart /> {already ? "Déjà dans les favoris" : "Garder en favori"}
-                    </Button>
-                    <div className="mt-2">
-                      <WearTodayButton itemIds={p.itemIds} name={title} />
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-          <div className="h-24" aria-hidden />
-        </div>
-      )}
-      {items.length > 0 && (
-        <div
-          className="fixed inset-x-0 z-30 mx-auto max-w-5xl px-5"
-          style={{ bottom: "calc(env(safe-area-inset-bottom) + 4.75rem)" }}
-        >
-          <Button size="lg" className="w-full shadow-lift" onClick={() => void propose(true)}>
-            Proposer des tenues
-          </Button>
         </div>
       )}
     </Page>

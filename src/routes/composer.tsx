@@ -99,7 +99,7 @@ function Composer() {
 
   return (
     <Page>
-      <PageHeader back eyebrow="Composer soi-même" title="Ma tenue" />
+      <PageHeader back title="Ma tenue" />
       {initial && !initial.available && (
         <p className="mb-4 text-sm text-muted-foreground">
           Cette pièce est au lavage : elle n'entre pas dans la tenue.
@@ -125,11 +125,11 @@ function Composer() {
           if (!list.length) return null;
           return (
             <section key={c.value}>
-              <p className="eyebrow mb-2">
+              <p className="section-label">
                 {c.plural}
                 {c.value === "accessoire" ? " (plusieurs possibles)" : ""}
               </p>
-              <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2">
+              <div className="grid grid-cols-2 gap-4">
                 {list.map((g) => {
                   const on = sel.includes(g.id);
                   return (
@@ -139,19 +139,19 @@ function Composer() {
                       onClick={() => toggle(g.id, g.category)}
                       aria-pressed={on}
                       disabled={!g.available}
-                      className="relative w-24 shrink-0 text-left disabled:opacity-60"
+                      className="press relative text-left disabled:opacity-60"
                     >
                       <div
-                        className={`overflow-hidden rounded-2xl border-2 ${on ? "border-primary" : "border-transparent"}`}
+                        className={`overflow-hidden rounded-[18px] border-2 ${on ? "border-primary" : "border-transparent"}`}
                       >
-                        <GarmentImage g={g} className="aspect-[3/4] w-full" />
+                        <GarmentImage g={g} className="aspect-[4/5] w-full" />
                       </div>
                       {on && (
-                        <span className="absolute right-1 top-1 grid size-6 place-items-center rounded-full bg-primary text-primary-foreground">
+                        <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-full bg-primary text-primary-foreground">
                           <Check className="size-4" />
                         </span>
                       )}
-                      <p className="mt-1 line-clamp-2 text-xs">
+                      <p className="garment-name mt-2 line-clamp-2">
                         {g.name}
                         {!g.available ? " · au lavage" : ""}
                       </p>
@@ -164,10 +164,10 @@ function Composer() {
         })}
       </div>
       <div
-        className="fixed inset-x-0 z-30 mx-auto max-w-lg px-4"
+        className="composer-dock fixed inset-x-0 z-30 mx-auto max-w-lg px-4"
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 4.75rem)" }}
       >
-        <div className="space-y-2 rounded-3xl border border-border bg-card/95 p-3 shadow-lift backdrop-blur">
+        <div className="composer-sheet space-y-2 border border-border bg-card/95 p-4 shadow-lift backdrop-blur">
           {picked.length ? (
             <div className="flex gap-2 overflow-x-auto">
               {picked.map((g) => (
@@ -175,7 +175,7 @@ function Composer() {
               ))}
             </div>
           ) : (
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="px-1 text-center text-[15px] text-muted-foreground">
               Touchez des pièces pour composer votre tenue.
             </p>
           )}
@@ -187,7 +187,7 @@ function Composer() {
             aria-label="Nom de la tenue"
           />
           <Button
-            className="min-h-11 w-full"
+            className="ios-fill w-full"
             disabled={picked.length < 2 || save.isPending || already}
             onClick={() => void submit()}
           >
@@ -200,7 +200,9 @@ function Composer() {
             />
           )}
           {picked.length < 2 && (
-            <p className="text-xs text-muted-foreground">Choisissez au moins deux pièces.</p>
+            <p className="text-center text-[13px] text-muted-foreground">
+              Choisissez au moins deux pièces.
+            </p>
           )}
         </div>
       </div>

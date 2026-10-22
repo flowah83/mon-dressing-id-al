@@ -111,6 +111,13 @@ function Reglages() {
         )}
       </div>
       <div className="mt-4 space-y-3 rounded-3xl bg-card p-6 shadow-soft">
+        <h2 className="text-2xl">Historique</h2>
+        <p>Les jours où vous avez porté une tenue restent sur cet appareil, avec votre dressing.</p>
+        <Button asChild variant="outline" className="min-h-11">
+          <Link to="/historique">Ouvrir l'historique</Link>
+        </Button>
+      </div>
+      <div className="mt-4 space-y-3 rounded-3xl bg-card p-6 shadow-soft">
         <h2 className="text-2xl">Sur l'écran d'accueil</h2>
         <p>Pour ouvrir Vestiaire comme une application, sans la barre du navigateur :</p>
         <ol className="list-decimal space-y-2 pl-5">
