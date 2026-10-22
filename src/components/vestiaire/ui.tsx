@@ -550,25 +550,6 @@ export function ColorPicker({
   );
 }
 
-const FLAT_LAYOUTS: { x: string; y: string; w: string; r: number }[][] = [
-  [{ x: "18%", y: "6%", w: "64%", r: -3 }],
-  [
-    { x: "4%", y: "8%", w: "50%", r: -8 },
-    { x: "46%", y: "14%", w: "48%", r: 6 },
-  ],
-  [
-    { x: "3%", y: "4%", w: "48%", r: -7 },
-    { x: "48%", y: "2%", w: "46%", r: 5 },
-    { x: "24%", y: "46%", w: "48%", r: -2 },
-  ],
-  [
-    { x: "2%", y: "3%", w: "48%", r: -6 },
-    { x: "50%", y: "2%", w: "46%", r: 4 },
-    { x: "6%", y: "48%", w: "46%", r: -3 },
-    { x: "50%", y: "50%", w: "42%", r: 7 },
-  ],
-];
-
 export function Collage({
   items,
   className,
@@ -581,28 +562,13 @@ export function Collage({
   if (!items.length)
     return <div className={cn("flat-lay is-empty", compact && "is-compact", className)} />;
   const shown = items.slice(0, 4);
-  const slots = FLAT_LAYOUTS[shown.length - 1] ?? FLAT_LAYOUTS[0]!;
   return (
-    <div className={cn("flat-lay", compact && "is-compact", className)}>
-      {shown.map((g, index) => {
-        const slot = slots[index] ?? slots[0]!;
-        const width = g.category === "chaussures" ? `calc(${slot.w} * 0.78)` : slot.w;
-        return (
-          <div
-            key={g.id}
-            className="flat-piece"
-            style={{
-              left: slot.x,
-              top: slot.y,
-              width,
-              transform: `rotate(${slot.r}deg)`,
-              zIndex: index + 1,
-            }}
-          >
-            <GarmentImage g={g} eager className="aspect-[3/4] w-full rounded-[14px]" />
-          </div>
-        );
-      })}
+    <div className={cn("flat-lay", compact && "is-compact", className)} data-count={shown.length}>
+      {shown.map((g) => (
+        <div key={g.id} className="flat-piece">
+          <GarmentImage g={g} eager className="w-full rounded-[16px]" />
+        </div>
+      ))}
     </div>
   );
 }

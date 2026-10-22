@@ -1,4 +1,15 @@
-import { CloudSun, Loader2 } from "lucide-react";
+import {
+  Cloud,
+  CloudDrizzle,
+  CloudFog,
+  CloudLightning,
+  CloudRain,
+  CloudSnow,
+  CloudSun,
+  Loader2,
+  Sun,
+  type LucideIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { AdvisorWeatherState } from "@/hooks/use-advisor-weather";
 import {
@@ -10,6 +21,35 @@ import {
   weatherRefreshErrorText,
   type WeatherFailure,
 } from "@/lib/weather";
+
+function weatherKind(code: number): "sun" | "cloud" | "fog" | "rain" | "snow" | "storm" {
+  if (code === 0 || code === 1) return "sun";
+  if (code === 45 || code === 48) return "fog";
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return "rain";
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return "snow";
+  if (code >= 95) return "storm";
+  return "cloud";
+}
+
+function weatherIcon(code: number): LucideIcon {
+  if (code === 0) return Sun;
+  if (code === 1 || code === 2) return CloudSun;
+  if (code === 45 || code === 48) return CloudFog;
+  if (code >= 51 && code <= 57) return CloudDrizzle;
+  if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return CloudRain;
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return CloudSnow;
+  if (code >= 95) return CloudLightning;
+  return Cloud;
+}
+
+export function WeatherGlyph({ code }: { code: number }) {
+  const Icon = weatherIcon(code);
+  return (
+    <span className="weather-glyph" data-kind={weatherKind(code)}>
+      <Icon className="size-3.5" strokeWidth={1.75} aria-hidden />
+    </span>
+  );
+}
 
 export function WeatherCard({
   state,
@@ -30,7 +70,11 @@ export function WeatherCard({
   return (
     <section aria-live="polite" className="rounded-3xl bg-card p-5 shadow-soft">
       <div className="flex items-center gap-2">
-        <CloudSun className="size-4 text-primary" aria-hidden />
+        {snapshot ? (
+          <WeatherGlyph code={snapshot.weatherCode} />
+        ) : (
+          <CloudSun className="size-4 text-primary" strokeWidth={1.75} aria-hidden />
+        )}
         <p className="eyebrow">Météo du jour</p>
       </div>
 

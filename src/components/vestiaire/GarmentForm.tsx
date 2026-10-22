@@ -1,3 +1,5 @@
+import { ChevronRight } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import {
   CATEGORIES,
   PATTERNS,
@@ -146,17 +148,34 @@ export function GarmentForm({
         />
       </label>
       {collapsibleDetails ? (
-        <details className="rounded-2xl border border-border bg-card p-4">
-          <summary className="min-h-11 cursor-pointer text-base font-medium">Affiner</summary>
-          <p className="mb-4 text-sm text-muted-foreground">
+        <Refine>
+          <p className="text-sm text-muted-foreground">
             Le nom suffit pour enregistrer. Ici : catégorie, couleurs, motif, style, saisons et
             notes.
           </p>
-          <div className="space-y-6">{details}</div>
-        </details>
+          {details}
+        </Refine>
       ) : (
         details
       )}
     </div>
+  );
+}
+
+function Refine({ children }: { children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className="adjust-card">
+      <button
+        type="button"
+        className="adjust-row press"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span>Affiner</span>
+        <ChevronRight className="adjust-chevron" strokeWidth={1.75} />
+      </button>
+      {open ? <div className="adjust-body space-y-6">{children}</div> : null}
+    </section>
   );
 }

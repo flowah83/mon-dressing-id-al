@@ -796,7 +796,7 @@ html[data-collapsed="true"][data-theme="apple-sombre"] .ios-bar {
 }
 [data-theme="apple"] .hero-card .flat-lay,
 [data-theme="apple-sombre"] .hero-card .flat-lay {
-  height: 312px;
+  height: auto;
   border-radius: 0;
 }
 [data-theme="apple"] .hero-body,
@@ -844,10 +844,160 @@ html[data-collapsed="true"][data-theme="apple-sombre"] .ios-bar {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  color: var(--label-secondary, #8e8e93);
-  font-size: 13px;
+  color: var(--label-secondary, #636366);
+  font-size: 0.8125rem;
   font-weight: 500;
   letter-spacing: -0.01em;
+}
+.weather-glyph {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(120, 120, 128, 0.14);
+  color: #636366;
+}
+.weather-glyph[data-kind="sun"] {
+  background: rgba(255, 159, 10, 0.16);
+  color: #c93400;
+}
+.weather-glyph[data-kind="rain"] {
+  background: rgba(0, 122, 255, 0.12);
+  color: #007aff;
+}
+.weather-glyph[data-kind="snow"] {
+  background: rgba(90, 200, 250, 0.2);
+  color: #007aff;
+}
+.weather-glyph[data-kind="storm"] {
+  background: rgba(175, 82, 222, 0.16);
+  color: #8944ab;
+}
+[data-theme="apple-sombre"] .weather-glyph[data-kind="sun"] {
+  color: #ff9f0a;
+}
+.weather-sep {
+  color: rgba(60, 60, 67, 0.45);
+}
+.adjust-card {
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--card);
+  box-shadow: var(--shadow-soft);
+}
+.adjust-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 16px;
+  font-size: 1.0625rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  text-align: left;
+}
+.adjust-chevron {
+  width: 18px;
+  height: 18px;
+  color: var(--label-secondary, #636366);
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.adjust-row[aria-expanded="true"] .adjust-chevron {
+  transform: rotate(90deg);
+}
+.adjust-body {
+  padding: 4px 16px 16px;
+  border-top: 0.5px solid rgba(60, 60, 67, 0.16);
+}
+summary {
+  list-style: none;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+[data-theme="apple"] select.field,
+[data-theme="apple-sombre"] select.field,
+select.field {
+  appearance: none;
+  padding-right: 2.4rem;
+  background-color: rgba(118, 118, 128, 0.12);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%23636366' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+}
+[data-theme="apple-sombre"] select.field {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%2398989d' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+}
+input[type="range"] {
+  height: 28px;
+  accent-color: var(--primary);
+  appearance: none;
+  background: transparent;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(120, 120, 128, 0.28);
+}
+input[type="range"]::-webkit-slider-thumb {
+  width: 28px;
+  height: 28px;
+  margin-top: -12px;
+  appearance: none;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.28),
+    0 0 0 0.5px rgba(0, 0, 0, 0.08);
+}
+input[type="range"]::-moz-range-track {
+  height: 4px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(120, 120, 128, 0.28);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+}
+input[type="range"]:focus-visible {
+  outline: none;
+}
+input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--primary) 35%, transparent),
+    0 1px 4px rgba(0, 0, 0, 0.28);
+}
+textarea.field {
+  resize: vertical;
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+}
+[data-theme^="apple"] {
+  scrollbar-color: rgba(120, 120, 128, 0.45) transparent;
+}
+[data-theme^="apple"] *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+[data-theme^="apple"] *::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(120, 120, 128, 0.4);
+}
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
 }
 [data-theme="apple"] .weather-follow,
 [data-theme="apple-sombre"] .weather-follow {
@@ -1057,28 +1207,50 @@ html.vt .page-enter {
   to { background-position: -100% 0; }
 }
 .flat-lay {
-  position: relative;
-  height: 312px;
-  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  height: auto;
+  padding: 14px;
+  overflow: visible;
   background: #f3f1ec;
 }
+.flat-lay[data-count="1"] {
+  grid-template-columns: minmax(0, 68%);
+  justify-content: center;
+}
+.flat-lay[data-count="3"] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 .flat-lay.is-compact {
-  height: 200px;
+  gap: 8px;
+  height: auto;
+  padding: 8px;
   border-radius: 14px;
 }
 .flat-lay.is-empty {
+  min-height: 160px;
   background: rgba(120, 120, 128, 0.12);
 }
 .flat-piece {
-  position: absolute;
-  filter: drop-shadow(0 12px 16px rgba(40, 32, 24, 0.16)) drop-shadow(0 1px 2px rgba(40, 32, 24, 0.08));
+  min-width: 0;
 }
 .flat-piece .garment-photo {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  overflow: hidden;
   background: transparent;
 }
-.flat-piece .garment-photo img {
-  padding: 2%;
+.flat-piece .garment-photo img,
+.flat-piece .garment-photo img[data-flat="1"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 6%;
   object-fit: contain;
+  object-position: center;
 }
 .demo-note {
   display: flex;
@@ -1150,20 +1322,25 @@ html.vt .page-enter {
   position: absolute;
   right: 12px;
   bottom: 12px;
-  left: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  display: grid;
+  width: 44px;
   height: 44px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.78);
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
   color: #1c1c1e;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.16),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+}
+[data-theme="apple-sombre"] .fiche-photo-btn {
+  background: rgba(44, 44, 46, 0.62);
+  color: #fff;
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.28),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.22);
 }
 .piece-menu-back {
   position: fixed;

@@ -205,10 +205,11 @@ function Piece() {
             <button
               type="button"
               className="fiche-photo-btn press"
+              aria-label="Changer la photo"
               disabled={cutout.phase === "working"}
               onClick={() => fileRef.current?.click()}
             >
-              <Camera className="size-5" strokeWidth={1.75} /> Changer la photo
+              <Camera className="size-5" strokeWidth={1.75} />
             </button>
           </div>
           {cutout.phase === "working" && (
