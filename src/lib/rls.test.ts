@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { describe, expect, it } from vitest-alias;
+import { describe, expect, it } from "vitest";
 import { AI_DAILY_LIMIT } from "./quota";
 import { PHOTO_BUCKET } from "./sync-plan";
 import { CATEGORIES, COLORS, PATTERNS, SEASONS, STYLES } from "./wardrobe";
