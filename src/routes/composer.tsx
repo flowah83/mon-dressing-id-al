@@ -166,7 +166,7 @@ function Composer() {
         className="fixed inset-x-0 z-30 mx-auto max-w-lg px-4"
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 4.75rem)" }}
       >
-        <div className="space-y-2 rounded-3xl border border-border bg-card/95 p-3 shadow-lift backdrop-blur">
+        <div className="composer-sheet space-y-2 rounded-3xl border border-border bg-card/95 p-3 shadow-lift backdrop-blur">
           {picked.length ? (
             <div className="flex gap-2 overflow-x-auto">
               {picked.map((g) => (

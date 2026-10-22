@@ -86,8 +86,8 @@ function Dressing() {
 
       {ready && !isLoading && !error && items.length === 0 && (
         <EmptyState
-          title={mode === "demo" ? "L'exemple est vide" : "Ton dressing t'attend"}
-          text="Une photo suffit pour commencer. Ensuite, Vestiaire propose des tenues avec ce que tu as déjà."
+          title={mode === "demo" ? "L'exemple est vide" : "Votre dressing vous attend"}
+          text="Une photo suffit pour commencer. Ensuite, Vestiaire propose des tenues avec ce que vous avez déjà."
         >
           <Button asChild size="lg">
             <Link to="/ajouter">Ajouter une première pièce</Link>
@@ -123,7 +123,7 @@ function Dressing() {
               </button>
             )}
           </div>
-          <div className="-mx-5 mb-3 flex gap-2 overflow-x-auto px-5 pb-1">
+          <div className="segmented -mx-5 mb-3 flex gap-2 overflow-x-auto px-5 pb-1">
             <button
               type="button"
               className="chip"

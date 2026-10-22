@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { GarmentForm, type GarmentFields } from "@/components/vestiaire/GarmentForm";
+import { useWornLog } from "@/components/vestiaire/ritual";
 import { EmptyState, GarmentImage, Page, PageHeader } from "@/components/vestiaire/ui";
 import { uid } from "@/lib/db";
 import { blobFromGarment, copyToPersonal } from "@/lib/garment-copy";
@@ -54,6 +55,7 @@ function Piece() {
   const save = useSaveGarment();
   const del = useDeleteGarment();
   const navigate = useNavigate();
+  const worn = useWornLog();
   const fileRef = useRef<HTMLInputElement>(null);
   const [f, setF] = useState<GarmentFields | null>(null);
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
@@ -135,6 +137,14 @@ function Piece() {
       <div className="grid gap-8 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <div>
           <GarmentImage g={g} eager className="aspect-[4/5] rounded-3xl" />
+          {worn.entries.some((entry) => entry.itemIds.includes(g.id)) && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Portée {worn.entries.filter((entry) => entry.itemIds.includes(g.id)).length} fois
+              {worn.entries.some((entry) => entry.date === worn.today && entry.itemIds.includes(g.id))
+                ? " · dernière fois aujourd'hui"
+                : ""}
+            </p>
+          )}
           <input
             ref={fileRef}
             type="file"

@@ -3,7 +3,7 @@ import { ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { WeekCard } from "@/components/vestiaire/ritual";
-import { Collage, EmptyState, GarmentCard, Page, PageHeader } from "@/components/vestiaire/ui";
+import { Collage, EmptyState, GarmentCard, HistoryLink, Page, PageHeader } from "@/components/vestiaire/ui";
 import { useDeleteOutfit, useGarments, useOutfits, useSaveOutfit } from "@/lib/store";
 import type { Outfit } from "@/lib/wardrobe";
 
@@ -28,7 +28,7 @@ function Favoris() {
   const empty = !isLoading && outfits.length === 0 && favorites.length === 0;
   return (
     <Page>
-      <PageHeader eyebrow="Ce que tu aimes" title="Favoris" />
+      <PageHeader eyebrow="Ce que vous aimez" title="Favoris" action={<HistoryLink />} />
       <WeekCard />
       {empty && (
         <EmptyState

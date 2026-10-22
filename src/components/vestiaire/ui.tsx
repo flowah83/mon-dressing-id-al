@@ -50,7 +50,11 @@ export function BottomNav() {
         <Link
           to="/ajouter"
           aria-label="Ajouter une pièce"
-          className="press flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 pb-1 text-xs font-medium text-muted-foreground"
+          data-active={pathname.startsWith("/ajouter") ? "true" : "false"}
+          className={cn(
+            "tab-link press flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 pb-1 text-xs font-medium",
+            pathname.startsWith("/ajouter") ? "text-primary" : "text-muted-foreground",
+          )}
         >
           <span className="tab-plus -mt-5 grid size-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lift md:mt-0">
             <Plus className="size-6" />
@@ -107,6 +111,17 @@ export function PageHeader({
         {action}
       </div>
     </header>
+  );
+}
+
+export function HistoryLink() {
+  return (
+    <Link
+      to="/historique"
+      className="inline-flex min-h-11 items-center px-1 text-[17px] font-normal text-primary"
+    >
+      Historique
+    </Link>
   );
 }
 

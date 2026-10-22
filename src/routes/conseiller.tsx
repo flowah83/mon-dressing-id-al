@@ -243,7 +243,7 @@ function Conseiller() {
                     </p>
                   )}
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Glisse à droite si tu l'aimes, à gauche pour une autre idée.
+                    Glissez vers la droite si elle vous plaît, vers la gauche pour une autre idée.
                   </p>
                   <Button
                     size="lg"
@@ -274,12 +274,12 @@ function Conseiller() {
             </SwipeCard>
           ) : (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" /> On prépare ta tenue…
+              <Loader2 className="size-4 animate-spin" /> Préparation de votre tenue…
             </p>
           )}
 
           {snapshot ? (
-            <p className="text-sm leading-relaxed text-muted-foreground">
+            <p className="weather-line text-sm leading-relaxed text-muted-foreground">
               {formatWeatherLines(snapshot).title}. {formatWeatherLines(snapshot).detail}.
             </p>
           ) : (

@@ -218,10 +218,10 @@ function Ajouter() {
       />
 
       {!preview && status !== "compress" && (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="add-choices grid gap-4 sm:grid-cols-2">
           <button
             onClick={() => camRef.current?.click()}
-            className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-3xl bg-primary p-6 text-primary-foreground shadow-lift"
+            className="add-choice flex min-h-48 flex-col items-center justify-center gap-3 rounded-3xl bg-primary p-6 text-primary-foreground shadow-lift"
           >
             <Camera className="size-8" strokeWidth={1.5} />
             <span className="font-display text-2xl">Prendre une photo</span>
@@ -231,7 +231,7 @@ function Ajouter() {
           </button>
           <button
             onClick={() => galRef.current?.click()}
-            className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-3xl border border-border bg-card p-6"
+            className="add-choice flex min-h-48 flex-col items-center justify-center gap-3 rounded-3xl border border-border bg-card p-6"
           >
             <ImageIcon className="size-8 text-primary" strokeWidth={1.5} />
             <span className="font-display text-2xl">Choisir dans la galerie</span>

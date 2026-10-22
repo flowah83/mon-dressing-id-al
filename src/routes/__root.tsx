@@ -108,7 +108,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700&family=Outfit:wght@400;500;600&family=Source+Sans+3:wght@400;500;600;700&family=Syne:wght@600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=Nunito:wght@400;600;700&family=Outfit:wght@400;500;600&family=Source+Sans+3:wght@400;500;600;700&family=Syne:wght@600;700&display=swap",
       },
     ],
   }),
@@ -126,7 +126,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "try{var t=new URLSearchParams(location.search).get('theme');if(t==='atelier'||t==='atelier-nuit'||t==='doux'||t==='sombre')document.documentElement.dataset.theme=t;}catch(e){}",
+              "try{var t=new URLSearchParams(location.search).get('theme');if(t==='atelier'||t==='atelier-nuit'||t==='doux'||t==='sombre'||t==='apple'||t==='apple-sombre')document.documentElement.dataset.theme=t;}catch(e){}",
           }}
         />
       </head>
@@ -156,6 +156,7 @@ function RootComponent() {
       "/favoris",
       "/reglages",
       "/compte",
+      "/historique",
     ] as const;
     for (const to of paths) void router.preloadRoute({ to }).catch(() => undefined);
   }, [router]);

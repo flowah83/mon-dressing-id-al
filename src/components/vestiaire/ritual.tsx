@@ -30,7 +30,7 @@ export function useWornLog() {
 export function StreakPill({ count }: { count: number }) {
   if (count < 1) return null;
   return (
-    <p className="shrink-0 rounded-full bg-accent px-3 py-2 text-sm font-semibold text-accent-foreground">
+    <p className="streak-pill shrink-0 rounded-full bg-accent px-3 py-2 text-sm font-semibold text-accent-foreground">
       {count} jour{count > 1 ? "s" : ""} d'affilée
     </p>
   );
@@ -44,13 +44,13 @@ export function WeekCard() {
   const labels = ["L", "M", "M", "J", "V", "S", "D"];
   return (
     <section className="mb-6 rounded-[var(--radius-card)] bg-card p-5 shadow-soft">
-      <p className="eyebrow">Ta semaine</p>
+      <p className="eyebrow">Votre semaine</p>
       <h2 className="mt-1 text-[1.75rem] leading-none">
         {n === 0 ? "La semaine commence" : `${n} jour${n > 1 ? "s" : ""} habillé${n > 1 ? "s" : ""}`}
       </h2>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
         {n === 0
-          ? "Chaque « Je la porte » laisse une trace. Dimanche, on regarde la semaine ensemble. Un jour sauté ne casse rien."
+          ? "Chaque « Je la porte » laisse une trace. Le dimanche, la semaine se relit ici. Un jour sauté ne casse rien."
           : "Le fil de la semaine, sans reproche pour les jours passés autrement."}
       </p>
       <div className="mt-4 grid grid-cols-7 gap-1.5">
