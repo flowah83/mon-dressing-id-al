@@ -1,26 +1,81 @@
-/** Resize + recompress a photo to JPEG (max side `max` px). */
-export async function compressImage(file: Blob, max = 1400, quality = 0.84): Promise<Blob> {
+/** Warm white used behind a cut-out garment. */
+export const NEUTRAL_BACKGROUND = "#f7f5f2";
+
+function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () =>
+      reject(new Error("Format de photo non pris en charge. Essayez une photo JPEG ou PNG."));
+    image.src = url;
+  });
+}
+
+function canvasToJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("Compression impossible."))),
+      "image/jpeg",
+      quality,
+    );
+  });
+}
+
+function drawScaled(
+  file: Blob,
+  max: number,
+  paint: (
+    ctx: CanvasRenderingContext2D,
+    image: HTMLImageElement,
+    width: number,
+    height: number,
+  ) => void,
+  quality: number,
+): Promise<Blob> {
   const url = URL.createObjectURL(file);
-  try {
-    const img = await new Promise<HTMLImageElement>((res, rej) => {
-      const i = new Image();
-      i.onload = () => res(i);
-      i.onerror = () => rej(new Error("Format de photo non pris en charge. Essayez une photo JPEG ou PNG."));
-      i.src = url;
-    });
-    const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
-    const w = Math.round(img.naturalWidth * scale);
-    const h = Math.round(img.naturalHeight * scale);
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Impossible de traiter la photo sur cet appareil.");
-    ctx.drawImage(img, 0, 0, w, h);
-    return await new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error("Compression impossible."))), "image/jpeg", quality));
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+  return loadImage(url)
+    .then((image) => {
+      const scale = Math.min(1, max / Math.max(image.naturalWidth, image.naturalHeight));
+      const width = Math.max(1, Math.round(image.naturalWidth * scale));
+      const height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Impossible de traiter la photo sur cet appareil.");
+      paint(ctx, image, width, height);
+      return canvasToJpeg(canvas, quality);
+    })
+    .finally(() => URL.revokeObjectURL(url));
+}
+
+/** Resize + recompress a photo to JPEG (max side `max` px). */
+export function compressImage(file: Blob, max = 1400, quality = 0.84): Promise<Blob> {
+  return drawScaled(
+    file,
+    max,
+    (ctx, image, width, height) => ctx.drawImage(image, 0, 0, width, height),
+    quality,
+  );
+}
+
+/** Place a transparent cut-out on a neutral background and recompress to JPEG. */
+export function flattenOnNeutral(
+  file: Blob,
+  max = 1400,
+  quality = 0.86,
+  background = NEUTRAL_BACKGROUND,
+): Promise<Blob> {
+  return drawScaled(
+    file,
+    max,
+    (ctx, image, width, height) => {
+      ctx.fillStyle = background;
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(image, 0, 0, width, height);
+    },
+    quality,
+  );
 }
 
 export const blobToDataUrl = (b: Blob) =>

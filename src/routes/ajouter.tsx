@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { GarmentForm, emptyFields, type GarmentFields } from "@/components/vestiaire/GarmentForm";
-import { LocalNotice, Page, PageHeader } from "@/components/vestiaire/ui";
+import { BusyStatus, LocalNotice, Page, PageHeader } from "@/components/vestiaire/ui";
+import { usePhotoCutout } from "@/hooks/use-photo-cutout";
 import { useAuth } from "@/lib/account";
 import { analyzeGarment } from "@/lib/ai.functions";
 import { ensureAccessCookie } from "@/lib/cloud";
@@ -50,9 +51,13 @@ function Ajouter() {
   const navigate = useNavigate();
   const analyze = useServerFn(analyzeGarment);
   const save = useSaveGarment();
+  const cutout = usePhotoCutout();
   const camRef = useRef<HTMLInputElement>(null);
   const galRef = useRef<HTMLInputElement>(null);
-  const [blob, setBlob] = useState<Blob | null>(null);
+  const [source, setSource] = useState<Blob | null>(null);
+  const [cutoutBlob, setCutoutBlob] = useState<Blob | null>(null);
+  const [useCutout, setUseCutout] = useState(false);
+  const [cutoutNote, setCutoutNote] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [fields, setFields] = useState<GarmentFields>(emptyFields);
@@ -69,6 +74,15 @@ function Ajouter() {
     [preview],
   );
 
+  const chosen = useCutout && cutoutBlob ? cutoutBlob : source;
+
+  function showPhoto(next: Blob) {
+    setPreview((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return URL.createObjectURL(next);
+    });
+  }
+
   async function onFile(file?: File) {
     if (!file) return;
     if (!file.type.startsWith("image/") && !/\.(heic|heif)$/i.test(file.name)) {
@@ -77,15 +91,41 @@ function Ajouter() {
     }
     setStatus("compress");
     setAiState({ kind: "none" });
+    setCutoutNote(null);
+    setSource(null);
+    setCutoutBlob(null);
+    setUseCutout(false);
+    setPreview((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return null;
+    });
     try {
-      const b = await compressImage(file);
-      setBlob(b);
-      setPreview(URL.createObjectURL(b));
-      await runAnalysis(b);
+      const result = await cutout.run(file);
+      if (!result) return;
+      const removed = result.removed && !result.skipped;
+      setSource(result.source);
+      setCutoutBlob(removed ? result.display : null);
+      setUseCutout(removed);
+      setCutoutNote(
+        result.skipped
+          ? null
+          : result.removed
+            ? null
+            : "Le détourage n'a pas abouti. La photo d'origine est conservée.",
+      );
+      showPhoto(removed ? result.display : result.source);
+      await runAnalysis(removed ? result.display : result.source);
     } catch (e) {
       setStatus("idle");
       toast.error((e as Error).message);
     }
+  }
+
+  function toggleCutout() {
+    if (!source || !cutoutBlob) return;
+    const next = !useCutout;
+    setUseCutout(next);
+    showPhoto(next ? cutoutBlob : source);
   }
 
   async function runAnalysis(b: Blob) {
@@ -128,7 +168,7 @@ function Ajouter() {
   }
 
   async function onSave() {
-    if (!blob) return;
+    if (!chosen || !source) return;
     if (!fields.name.trim()) {
       toast.error("Donnez un nom à la pièce.");
       return;
@@ -141,7 +181,8 @@ function Ajouter() {
         name: fields.name.trim(),
         id,
         mode,
-        image: blob,
+        image: chosen,
+        ...(useCutout && cutoutBlob ? { sourceImage: source, backgroundRemoved: true } : {}),
         available: true,
         favorite: false,
         createdAt: Date.now(),
@@ -157,8 +198,15 @@ function Ajouter() {
   }
 
   function reset() {
-    setBlob(null);
-    setPreview(null);
+    cutout.skip();
+    setSource(null);
+    setCutoutBlob(null);
+    setUseCutout(false);
+    setCutoutNote(null);
+    setPreview((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return null;
+    });
     setFields(emptyFields);
     setAiState({ kind: "none" });
     setStatus("idle");
@@ -217,7 +265,7 @@ function Ajouter() {
         }}
       />
 
-      {!preview && status !== "compress" && (
+      {!preview && status !== "compress" && cutout.phase !== "working" && (
         <div className="grid gap-4 sm:grid-cols-2">
           <button
             onClick={() => camRef.current?.click()}
@@ -226,7 +274,7 @@ function Ajouter() {
             <Camera className="size-8" strokeWidth={1.5} />
             <span className="font-display text-2xl">Prendre une photo</span>
             <span className="text-sm opacity-80">
-              À plat ou sur cintre, fond uni, bonne lumière
+              À plat ou sur cintre, bonne lumière. Le fond est retiré sur cet appareil.
             </span>
           </button>
           <button
@@ -243,23 +291,52 @@ function Ajouter() {
         </div>
       )}
 
-      {status === "compress" && <Progress label="Préparation de la photo…" />}
+      {!preview && (status === "compress" || cutout.phase === "working") && (
+        <BusyStatus
+          label={cutout.phase === "working" ? cutout.label : "Préparation de la photo…"}
+          action={
+            <Button type="button" variant="outline" className="min-h-11" onClick={cutout.skip}>
+              Ignorer le détourage
+            </Button>
+          }
+        />
+      )}
 
       {preview && (
         <div className="grid gap-8 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
           <div>
             <div className="aspect-[4/5] overflow-hidden rounded-3xl bg-photo">
-              <img src={preview} alt="Aperçu de la pièce" className="h-full w-full object-cover" />
+              <img
+                src={preview}
+                alt="Aperçu de la pièce"
+                className="h-full w-full object-contain"
+              />
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              Photo d'origine conservée et recadrée à l'affichage (pas de détourage automatique).
+              {useCutout
+                ? "Fond retiré sur cet appareil, sans crédit d'analyse. La photo d'origine reste disponible."
+                : "Photo d'origine. Le détourage se fait sur cet appareil, la première fois après un court téléchargement."}
             </p>
-            <Button variant="ghost" size="sm" className="mt-2" onClick={reset}>
-              <RotateCcw /> Changer de photo
-            </Button>
+            {cutoutNote && <p className="mt-2 text-sm text-muted-foreground">{cutoutNote}</p>}
+            <div className="mt-2 flex flex-wrap gap-2">
+              {cutoutBlob && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="min-h-11"
+                  onClick={toggleCutout}
+                >
+                  {useCutout ? "Photo d'origine" : "Photo détourée"}
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" className="min-h-11" onClick={reset}>
+                <RotateCcw /> Changer de photo
+              </Button>
+            </div>
           </div>
           <div>
-            {status === "analyse" && <Progress label="Analyse de la photo par l'IA…" />}
+            {status === "analyse" && <BusyStatus label="Analyse de la photo par l'IA…" />}
             {aiState.kind === "ok" && (
               <div className="mb-6 flex gap-3 rounded-2xl bg-accent p-4 text-sm text-accent-foreground">
                 <Sparkles className="mt-0.5 size-4 shrink-0" />
@@ -275,12 +352,12 @@ function Ajouter() {
                 <p className="mt-1 text-muted-foreground">
                   {aiState.message} Remplissez la fiche ci-dessous, c'est rapide.
                 </p>
-                {blob && (
+                {chosen && (
                   <Button
                     variant="outline"
                     size="sm"
                     className="mt-3"
-                    onClick={() => runAnalysis(blob)}
+                    onClick={() => runAnalysis(chosen)}
                   >
                     Réessayer l'analyse
                   </Button>
@@ -307,13 +384,5 @@ function Ajouter() {
         </div>
       )}
     </Page>
-  );
-}
-
-function Progress({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-3 rounded-2xl bg-card p-5 text-sm" role="status">
-      <Loader2 className="size-5 animate-spin text-primary" /> {label}
-    </div>
   );
 }

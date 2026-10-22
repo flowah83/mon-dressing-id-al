@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { WeatherCard } from "@/components/vestiaire/WeatherCard";
-import { Collage, EmptyState, Page, PageHeader } from "@/components/vestiaire/ui";
+import { Collage, EmptyState, HistoryLink, Page, PageHeader } from "@/components/vestiaire/ui";
+import { WearTodayButton } from "@/components/vestiaire/WearTodayButton";
 import { useAuth } from "@/lib/account";
 import { adviseOutfits } from "@/lib/ai.functions";
 import { ensureAccessCookie } from "@/lib/cloud";
@@ -13,7 +14,8 @@ import { uid } from "@/lib/db";
 import { findOutfitByPieces, outfitKey } from "@/lib/outfit-match";
 import { generateOutfits, type AdvisorResult } from "@/lib/rules";
 import { sliderChangeIsDeliberate } from "@/lib/slider-intent";
-import { useGarments, useMode, useOutfits, useSaveOutfit } from "@/lib/store";
+import { useGarments, useMode, useOutfits, useSaveOutfit, useWorn } from "@/lib/store";
+import { localDateISO, neverWornHint } from "@/lib/wear";
 import {
   adviceTemperature,
   TEMP_MAX,
@@ -58,6 +60,10 @@ function Conseiller() {
   const garments = useGarments();
   const items = garments.data ?? [];
   const { data: outfits = [] } = useOutfits();
+  const { data: worn = [] } = useWorn();
+  const wearStamp = worn
+    .map((entry) => `${entry.id}:${entry.wornOn}:${entry.updatedAt ?? 0}`)
+    .join("|");
   const saveOutfit = useSaveOutfit();
   const advise = useServerFn(adviseOutfits);
   const weather = useAdvisorWeather({ enabled: garments.isSuccess && items.length > 0 });
@@ -102,6 +108,8 @@ function Conseiller() {
       level,
       anchorId: anchor || undefined,
       feedback: outfits,
+      today: localDateISO(),
+      recentWears: worn.map((entry) => ({ itemIds: entry.itemIds, wornOn: entry.wornOn })),
       ...(hints ? { weather: hints } : {}),
     });
     setRes(r);
@@ -148,11 +156,11 @@ function Conseiller() {
   useEffect(() => {
     if (!garments.isSuccess || items.length === 0) return;
     if (weather.state.phase !== "ready" && weather.state.phase !== "error") return;
-    const key = `${weather.state.phase}:${snapshot?.fetchedAt ?? "none"}:${items.length}`;
+    const key = `${weather.state.phase}:${snapshot?.fetchedAt ?? "none"}:${items.length}:${wearStamp}`;
     if (autoRef.current === key) return;
     autoRef.current = key;
     void proposeRef.current();
-  }, [garments.isSuccess, items.length, weather.state.phase, snapshot]);
+  }, [garments.isSuccess, items.length, weather.state.phase, snapshot, wearStamp]);
 
   async function keep(itemIds: string[], name: string, explanation?: string) {
     const key = outfitKey(itemIds);
@@ -172,12 +180,18 @@ function Conseiller() {
 
   const known = (ids: string[]) =>
     savedKeys.includes(outfitKey(ids)) || !!findOutfitByPieces(outfits, ids);
+  const unwornHint = neverWornHint(
+    items
+      .filter((garment) => !worn.some((entry) => entry.itemIds.includes(garment.id)))
+      .map((garment) => garment.name),
+  );
 
   return (
     <Page>
       <PageHeader
         eyebrow={mode === "demo" ? "Démonstration" : "Avec vos pièces"}
         title="Conseiller"
+        action={<HistoryLink />}
       />
       {auth.ready && !auth.user && (
         <p className="mb-4 text-sm text-muted-foreground">
@@ -392,6 +406,7 @@ function Conseiller() {
           {res && res.proposals.length > 0 && (
             <h2 className="text-3xl">{daily ? "La tenue du jour" : "Propositions"}</h2>
           )}
+          {unwornHint && <p className="text-sm text-muted-foreground">{unwornHint}</p>}
           <div className="grid gap-6 md:grid-cols-3">
             {res?.proposals.map((p, i) => {
               const pieces = piecesOf(p.itemIds);
@@ -428,12 +443,15 @@ function Conseiller() {
                     >
                       <Heart /> {already ? "Déjà dans les favoris" : "Garder en favori"}
                     </Button>
+                    <div className="mt-2">
+                      <WearTodayButton itemIds={p.itemIds} name={title} />
+                    </div>
                   </div>
                 </article>
               );
             })}
           </div>
-          <div className="h-16" aria-hidden />
+          <div className="h-24" aria-hidden />
         </div>
       )}
       {items.length > 0 && (

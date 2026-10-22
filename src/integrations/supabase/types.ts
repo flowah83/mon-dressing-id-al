@@ -92,6 +92,42 @@ export type Database = {
         }
         Relationships: []
       }
+      worn_outfits: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          item_ids: string[]
+          name: string
+          outfit_id: string | null
+          updated_at: string
+          user_id: string
+          worn_on: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id: string
+          item_ids?: string[]
+          name?: string
+          outfit_id?: string | null
+          updated_at?: string
+          user_id: string
+          worn_on: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          item_ids?: string[]
+          name?: string
+          outfit_id?: string | null
+          updated_at?: string
+          user_id?: string
+          worn_on?: string
+        }
+        Relationships: []
+      }
       outfits: {
         Row: {
           created_at: string

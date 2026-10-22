@@ -54,8 +54,8 @@ function Reglages() {
       <div className="mt-4 space-y-4 rounded-3xl bg-card p-6 shadow-soft">
         <h2 className="text-2xl">Fichier de secours</h2>
         <p>
-          Le fichier contient vos pièces et vos tenues. Il sert si vous changez de téléphone, ou si
-          vous préférez ne pas utiliser de compte.
+          Le fichier contient vos pièces, vos tenues et l'historique des jours portés. Il sert si
+          vous changez de téléphone, ou si vous préférez ne pas utiliser de compte.
         </p>
         <p>
           Sur iPhone, après l'export, ouvrez l'app <strong>Fichiers</strong>, puis le dossier{" "}

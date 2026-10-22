@@ -1,3 +1,4 @@
+import { isWithinRecentDays, outfitWearKey } from "./wear";
 import {
   colorInfo,
   colorLabel,
@@ -20,6 +21,10 @@ export interface AdvisorInput {
   feedback?: { itemIds: string[]; feedback?: "like" | "dislike" | undefined }[];
   /** Pluie, neige ou vent du jour. Absent si la météo n'a pas pu être lue. */
   weather?: { precipitation: "none" | "rain" | "snow"; windKmh: number } | undefined;
+  /** Tenues déjà portées. Sans `today`, elles ne changent pas les propositions. */
+  recentWears?: { itemIds: string[]; wornOn: string }[];
+  /** Jour civil local `YYYY-MM-DD`, pour écarter les tenues des derniers jours. */
+  today?: string;
 }
 
 export interface Proposal {
@@ -138,6 +143,13 @@ export function generateOutfits(input: AdvisorInput): AdvisorResult {
     needJacket && jackets.length ? jackets : [null, ...jackets.slice(0, 4)];
   const accOpts: (Garment | null)[] = [null, ...accs.slice(0, 4)];
 
+  const today = input.today ?? "";
+  const recentWears = (input.recentWears ?? []).filter(
+    (wear) => today && isWithinRecentDays(wear.wornOn, today),
+  );
+  const recentKeys = new Set(recentWears.map((wear) => outfitWearKey(wear.itemIds)));
+  const recentItems = new Set(recentWears.flatMap((wear) => wear.itemIds));
+
   const liked = (input.feedback ?? [])
     .filter((f) => f.feedback === "like")
     .map((f) => new Set(f.itemIds));
@@ -155,11 +167,19 @@ export function generateOutfits(input: AdvisorInput): AdvisorResult {
           const pieces = [...base, s, ...(j ? [j] : []), ...(a ? [a] : [])];
           if (anchor && !pieces.some((p) => p.id === anchor.id)) continue;
           const p = scoreOutfit(pieces, { style, level, temperature, precipitation, windKmh });
-          const key = pieces
-            .map((x) => x.id)
-            .sort()
-            .join("|");
+          const key = outfitWearKey(pieces.map((piece) => piece.id));
           if (disliked.includes(key)) continue;
+          const wornPieces = pieces.filter(
+            (piece) => piece.id !== anchor?.id && recentItems.has(piece.id),
+          );
+          if (wornPieces.length) {
+            p.score -= wornPieces.length * 2.4;
+            p.reasons.push(
+              wornPieces.length === 1
+                ? "Une pièce a été portée ces derniers jours."
+                : "Plusieurs pièces ont été portées ces derniers jours.",
+            );
+          }
           // like: boost combos sharing >=2 pieces with a liked outfit
           if (liked.some((set) => pieces.filter((x) => set.has(x.id)).length >= 2)) {
             p.score += 1.5;
@@ -183,6 +203,17 @@ export function generateOutfits(input: AdvisorInput): AdvisorResult {
   }
 
   candidates.sort((a, b) => b.score - a.score);
+  const fresh = recentKeys.size
+    ? candidates.filter((candidate) => !recentKeys.has(outfitWearKey(candidate.itemIds)))
+    : candidates;
+  const pool = fresh.length ? fresh : candidates;
+  if (recentKeys.size && candidates.length && fresh.length < candidates.length) {
+    notes.push(
+      fresh.length
+        ? "Les tenues portées ces derniers jours ne sont pas reproposées."
+        : "Toutes les associations possibles ont été portées récemment.",
+    );
+  }
   const chosen: Proposal[] = [];
   const core = (p: Proposal) =>
     p.itemIds.filter((id) => {
@@ -195,7 +226,7 @@ export function generateOutfits(input: AdvisorInput): AdvisorResult {
           g.category === "chaussures")
       );
     });
-  for (const c of candidates) {
+  for (const c of pool) {
     if (chosen.length >= 3) break;
     const cc = core(c);
     // distinct: share at most one core piece with every chosen outfit (anchor excluded)

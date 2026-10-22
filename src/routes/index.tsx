@@ -66,7 +66,17 @@ function Dressing() {
         compact
         eyebrow={mode === "demo" ? "Démonstration" : "Mon vestiaire"}
         title="Dressing"
-        action={<SettingsLink />}
+        action={
+          <span className="flex items-center gap-1">
+            <Link
+              to="/historique"
+              className="inline-flex min-h-11 items-center px-1 text-sm font-medium text-primary"
+            >
+              Historique
+            </Link>
+            <SettingsLink />
+          </span>
+        }
       />
 
       {(!ready || isLoading) && (

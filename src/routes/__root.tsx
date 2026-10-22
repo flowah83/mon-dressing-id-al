@@ -148,6 +148,7 @@ function RootComponent() {
       "/composer",
       "/conseiller",
       "/favoris",
+      "/historique",
       "/reglages",
       "/compte",
     ] as const;

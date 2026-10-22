@@ -15,6 +15,7 @@ import { Route as ComposerRouteImport } from './routes/composer'
 import { Route as CompteRouteImport } from './routes/compte'
 import { Route as ConseillerRouteImport } from './routes/conseiller'
 import { Route as FavorisRouteImport } from './routes/favoris'
+import { Route as HistoriqueRouteImport } from './routes/historique'
 import { Route as ReglagesRouteImport } from './routes/reglages'
 import { Route as PieceIdRouteImport } from './routes/piece.$id'
 
@@ -48,6 +49,11 @@ const FavorisRoute = FavorisRouteImport.update({
   path: '/favoris',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HistoriqueRoute = HistoriqueRouteImport.update({
+  id: '/historique',
+  path: '/historique',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReglagesRoute = ReglagesRouteImport.update({
   id: '/reglages',
   path: '/reglages',
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/compte': typeof CompteRoute
   '/conseiller': typeof ConseillerRoute
   '/favoris': typeof FavorisRoute
+  '/historique': typeof HistoriqueRoute
   '/reglages': typeof ReglagesRoute
   '/piece/$id': typeof PieceIdRoute
 }
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/compte': typeof CompteRoute
   '/conseiller': typeof ConseillerRoute
   '/favoris': typeof FavorisRoute
+  '/historique': typeof HistoriqueRoute
   '/reglages': typeof ReglagesRoute
   '/piece/$id': typeof PieceIdRoute
 }
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/compte': typeof CompteRoute
   '/conseiller': typeof ConseillerRoute
   '/favoris': typeof FavorisRoute
+  '/historique': typeof HistoriqueRoute
   '/reglages': typeof ReglagesRoute
   '/piece/$id': typeof PieceIdRoute
 }
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/compte'
     | '/conseiller'
     | '/favoris'
+    | '/historique'
     | '/reglages'
     | '/piece/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/compte'
     | '/conseiller'
     | '/favoris'
+    | '/historique'
     | '/reglages'
     | '/piece/$id'
   id:
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/compte'
     | '/conseiller'
     | '/favoris'
+    | '/historique'
     | '/reglages'
     | '/piece/$id'
   fileRoutesById: FileRoutesById
@@ -130,6 +142,7 @@ export interface RootRouteChildren {
   CompteRoute: typeof CompteRoute
   ConseillerRoute: typeof ConseillerRoute
   FavorisRoute: typeof FavorisRoute
+  HistoriqueRoute: typeof HistoriqueRoute
   ReglagesRoute: typeof ReglagesRoute
   PieceIdRoute: typeof PieceIdRoute
 }
@@ -178,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FavorisRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/historique': {
+      id: '/historique'
+      path: '/historique'
+      fullPath: '/historique'
+      preLoaderRoute: typeof HistoriqueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reglages': {
       id: '/reglages'
       path: '/reglages'
@@ -202,6 +222,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompteRoute: CompteRoute,
   ConseillerRoute: ConseillerRoute,
   FavorisRoute: FavorisRoute,
+  HistoriqueRoute: HistoriqueRoute,
   ReglagesRoute: ReglagesRoute,
   PieceIdRoute: PieceIdRoute,
 }

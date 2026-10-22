@@ -1,4 +1,5 @@
-import type { Category, Garment, Outfit, Season, StyleTag } from "./wardrobe";
+import { parseISODate } from "./wear";
+import type { Category, Garment, Outfit, Season, StyleTag, WornEntry } from "./wardrobe";
 import { CATEGORIES, SEASONS, STYLES } from "./wardrobe";
 
 export interface GarmentRow {
@@ -69,7 +70,8 @@ export function asGarmentRow(value: unknown, userId: string): GarmentRow | null 
   if (!value || typeof value !== "object") return null;
   const row = value as Record<string, unknown>;
   if (typeof row["id"] !== "string" || typeof row["name"] !== "string") return null;
-  const created = typeof row["created_at"] === "string" ? row["created_at"] : new Date(0).toISOString();
+  const created =
+    typeof row["created_at"] === "string" ? row["created_at"] : new Date(0).toISOString();
   const updated = typeof row["updated_at"] === "string" ? row["updated_at"] : created;
   return {
     id: row["id"],
@@ -94,7 +96,8 @@ export function asOutfitRow(value: unknown, userId: string): OutfitRow | null {
   if (!value || typeof value !== "object") return null;
   const row = value as Record<string, unknown>;
   if (typeof row["id"] !== "string" || typeof row["name"] !== "string") return null;
-  const created = typeof row["created_at"] === "string" ? row["created_at"] : new Date(0).toISOString();
+  const created =
+    typeof row["created_at"] === "string" ? row["created_at"] : new Date(0).toISOString();
   const updated = typeof row["updated_at"] === "string" ? row["updated_at"] : created;
   const feedback = row["feedback"];
   return {
@@ -111,7 +114,11 @@ export function asOutfitRow(value: unknown, userId: string): OutfitRow | null {
   };
 }
 
-export function garmentToRow(garment: Garment, userId: string, imagePath: string | null): GarmentRow {
+export function garmentToRow(
+  garment: Garment,
+  userId: string,
+  imagePath: string | null,
+): GarmentRow {
   return {
     id: garment.id,
     user_id: userId,
@@ -167,6 +174,77 @@ export function rowToGarment(row: GarmentRow, image?: Blob | undefined): Garment
   const deletedAt = row.deleted_at ? parseTime(row.deleted_at) : 0;
   if (deletedAt) garment.deletedAt = deletedAt;
   return garment;
+}
+
+export interface WornRow {
+  id: string;
+  user_id: string;
+  worn_on: string;
+  item_ids: string[];
+  outfit_id: string | null;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export function wornStamp(entry: Pick<WornEntry, "createdAt" | "updatedAt">): number {
+  return entry.updatedAt ?? entry.createdAt;
+}
+
+export function asWornRow(value: unknown, userId: string): WornRow | null {
+  if (!value || typeof value !== "object") return null;
+  const row = value as Record<string, unknown>;
+  if (typeof row["id"] !== "string") return null;
+  const wornOn = typeof row["worn_on"] === "string" ? row["worn_on"] : "";
+  if (!parseISODate(wornOn)) return null;
+  const itemIds = asStrings(row["item_ids"]).slice(0, 12);
+  if (!itemIds.length) return null;
+  const created =
+    typeof row["created_at"] === "string" ? row["created_at"] : new Date(0).toISOString();
+  const updated = typeof row["updated_at"] === "string" ? row["updated_at"] : created;
+  const name = typeof row["name"] === "string" ? row["name"].slice(0, 200) : "";
+  return {
+    id: row["id"],
+    user_id: typeof row["user_id"] === "string" ? row["user_id"] : userId,
+    worn_on: wornOn,
+    item_ids: itemIds,
+    outfit_id: typeof row["outfit_id"] === "string" && row["outfit_id"] ? row["outfit_id"] : null,
+    name,
+    created_at: created,
+    updated_at: updated,
+    deleted_at: typeof row["deleted_at"] === "string" ? row["deleted_at"] : null,
+  };
+}
+
+export function wornToRow(entry: WornEntry, userId: string): WornRow {
+  return {
+    id: entry.id,
+    user_id: userId,
+    worn_on: entry.wornOn,
+    item_ids: entry.itemIds.slice(0, 12),
+    outfit_id: entry.outfitId ?? null,
+    name: entry.name,
+    created_at: new Date(entry.createdAt).toISOString(),
+    updated_at: new Date(wornStamp(entry)).toISOString(),
+    deleted_at: entry.deletedAt ? new Date(entry.deletedAt).toISOString() : null,
+  };
+}
+
+export function rowToWorn(row: WornRow): WornEntry {
+  const entry: WornEntry = {
+    id: row.id,
+    mode: "perso",
+    wornOn: row.worn_on,
+    itemIds: row.item_ids,
+    name: row.name || "Tenue portée",
+    createdAt: parseTime(row.created_at),
+    updatedAt: parseTime(row.updated_at, parseTime(row.created_at)),
+  };
+  if (row.outfit_id) entry.outfitId = row.outfit_id;
+  const deletedAt = row.deleted_at ? parseTime(row.deleted_at) : 0;
+  if (deletedAt) entry.deletedAt = deletedAt;
+  return entry;
 }
 
 export function rowToOutfit(row: OutfitRow): Outfit {
