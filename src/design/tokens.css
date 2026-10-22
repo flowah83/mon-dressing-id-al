@@ -160,10 +160,13 @@
   --font-display: "Fraunces", ui-serif, Georgia, serif;
 }
 
-/* Épuré (style Apple).
+/* Épuré (style Apple), v2.
    Accent affiché : bleu système #007AFF (nuit : #0A84FF).
    Autre accent possible, plus « mode », une seule teinte cuivre #9C4A32
-   (texte blanc 6,1:1). Pour l'essayer : remplacer --primary. */
+   (texte blanc 6,1:1). Pour l'essayer : remplacer --primary.
+   Inter est embarquée (public/fonts). Titres : 34px, graisse 700, approche -0,02em.
+   Nom de pièce 15px / 600, méta 13px #8E8E93. Grille : gouttière 16px, rythme 8.
+   Puits photo unique #F3F1EC. Cœur aimé #FF3B30 (nuit #FF453A). */
 [data-theme="apple"] {
   color-scheme: light;
   --radius: 0.65rem;
@@ -185,15 +188,17 @@
   --destructive-foreground: #ffffff;
   --demo: #e5e5ea;
   --demo-foreground: #3a3a3c;
-  --photo: #f2f2f7;
+  --photo: #f3f1ec;
   --border: #e5e5ea;
   --input: #e5e5ea;
   --ring: #007aff;
   --shadow-soft: 0 1px 2px #0000000a, 0 8px 24px -16px #0000001f;
   --shadow-lift: 0 12px 32px -18px #0000002e;
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif;
-  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, system-ui, sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-display: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --text-display: 2.125rem;
+  --label-secondary: #8e8e93;
+  --heart: #ff3b30;
   --radius-card: 1.125rem;
   --radius-photo: 1rem;
   --segment: #e5e5ea;
@@ -225,15 +230,17 @@
   --destructive-foreground: #ffffff;
   --demo: #2c2c2e;
   --demo-foreground: #ebebf5;
-  --photo: #2c2c2e;
+  --photo: #f3f1ec;
   --border: #38383a;
   --input: #38383a;
   --ring: #0a84ff;
   --shadow-soft: 0 1px 0 #ffffff14;
   --shadow-lift: 0 16px 36px -18px #000000cc;
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif;
-  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, system-ui, sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-display: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --text-display: 2.125rem;
+  --label-secondary: #98989d;
+  --heart: #ff453a;
   --radius-card: 1.125rem;
   --radius-photo: 1rem;
   --segment: #2c2c2e;

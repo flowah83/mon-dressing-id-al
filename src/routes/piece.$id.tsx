@@ -182,7 +182,7 @@ function Piece() {
             </button>
           </div>
           {g.mode === "demo" && (
-            <Button type="button" className="mt-4 min-h-11 w-full" onClick={() => void keep()}>
+            <Button type="button" className="ios-fill mt-4 min-h-11 w-full" onClick={() => void keep()}>
               Garder dans Mon dressing
             </Button>
           )}

@@ -18,6 +18,7 @@ import { useGarments, useMode, useOutfits, useSaveOutfit } from "@/lib/store";
 import {
   adviceTemperature,
   formatWeatherLines,
+  weatherLabel,
   TEMP_MAX,
   TEMP_MIN,
   toAdviceWeather,
@@ -230,30 +231,39 @@ function Conseiller() {
               onLike={() => void keep(hero.itemIds, heroTitle, hero.reasons[0])}
               onNext={() => setShift((s) => s + 1)}
             >
-              <article className="relative overflow-hidden rounded-[var(--radius-card)] bg-card p-3 shadow-soft">
+              <article className="hero-card relative overflow-hidden rounded-[var(--radius-card)] bg-card p-3 shadow-soft">
                 <WearNote show={celebrate} />
                 <Collage items={heroPieces} />
-                <div className="p-2">
-                  <p className="mt-2 text-sm leading-relaxed">
+                <div className="hero-body p-2">
+                  {snapshot && (
+                    <p className="weather-inline">
+                      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden className="shrink-0 text-primary">
+                        <circle cx="7" cy="7" r="2.2" fill="currentColor" />
+                        <path d="M7 1.2v1.4M7 11.4v1.4M1.2 7h1.4M11.4 7h1.4M2.8 2.8l1 1M10.2 10.2l1 1M11.2 2.8l-1 1M3.8 10.2l-1 1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                      </svg>
+                      {formatWeatherLines(snapshot).title} · {weatherLabel(snapshot.weatherCode)}
+                    </p>
+                  )}
+                  <p className="hero-names mt-2 text-sm leading-relaxed">
                     {heroPieces.map((g) => g.name).join(" · ")}
                   </p>
                   {hero.reasons[0] && (
-                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    <p className="hero-reason mt-2 text-sm leading-relaxed text-muted-foreground">
                       {hero.reasons[0]}
                     </p>
                   )}
-                  <p className="mt-2 text-xs text-muted-foreground">
+                  <p className="swipe-hint mt-2 text-xs text-muted-foreground">
                     Glissez vers la droite si elle vous plaît, vers la gauche pour une autre idée.
                   </p>
                   <Button
                     size="lg"
-                    className="mt-4 min-h-12 w-full text-base"
+                    className="ios-fill mt-4 min-h-12 w-full text-base"
                     disabled={worn.wornToday}
                     onClick={wearHero}
                   >
                     {worn.wornToday ? "C'est noté pour aujourd'hui" : "Je la porte"}
                   </Button>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div className="hero-actions mt-2 grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       className="chip justify-center"
@@ -279,7 +289,7 @@ function Conseiller() {
           )}
 
           {snapshot ? (
-            <p className="weather-line text-sm leading-relaxed text-muted-foreground">
+            <p className="weather-line weather-follow text-sm leading-relaxed text-muted-foreground">
               {formatWeatherLines(snapshot).title}. {formatWeatherLines(snapshot).detail}.
             </p>
           ) : (

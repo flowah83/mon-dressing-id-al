@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Search, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   EmptyState,
@@ -44,8 +44,19 @@ function Dressing() {
   const [onlyFav, setOnlyFav] = useState(false);
   const [onlyAvail, setOnlyAvail] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const chipsRef = useRef<HTMLDivElement>(null);
+  const [chipsOverflow, setChipsOverflow] = useState(false);
 
   const items = data ?? [];
+  useEffect(() => {
+    const el = chipsRef.current;
+    if (!el) return;
+    const check = () => setChipsOverflow(el.scrollWidth > el.clientWidth + 2);
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [items.length]);
   const usedColors = useMemo(
     () => COLORS.filter((c) => items.some((g) => g.colors.includes(c.value))),
     [items],
@@ -115,39 +126,49 @@ function Dressing() {
             {q && (
               <button
                 type="button"
-                className="absolute right-1 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full text-muted-foreground"
+                className="absolute right-10 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full text-muted-foreground"
                 aria-label="Effacer la recherche"
                 onClick={() => setQ("")}
               >
                 <X className="size-4" />
               </button>
             )}
+            <button
+              type="button"
+              className="search-filter press"
+              aria-label="Filtrer"
+              aria-expanded={filtersOpen}
+              onClick={() => setFiltersOpen((v) => !v)}
+            >
+              <SlidersHorizontal className="size-[18px]" strokeWidth={1.75} />
+              {(color || season || onlyFav || onlyAvail) && <span className="filter-dot" />}
+            </button>
           </div>
-          <div className="segmented -mx-5 mb-3 flex gap-2 overflow-x-auto px-5 pb-1">
+          <div
+            ref={chipsRef}
+            className={`segmented -mx-5 mb-4 flex gap-2 overflow-x-auto px-5 pb-1${chipsOverflow ? " is-overflow" : ""}`}
+          >
             <button
               type="button"
               className="chip"
               data-active={cat === "all"}
               onClick={() => setCat("all")}
             >
-              Tout · {items.length}
+              Tout
             </button>
-            {CATEGORIES.filter((c) => items.some((g) => g.category === c.value)).map((c) => {
-              const n = items.filter((g) => g.category === c.value).length;
-              return (
-                <button
-                  type="button"
-                  key={c.value}
-                  className="chip"
-                  data-active={cat === c.value}
-                  onClick={() => setCat(c.value)}
-                >
-                  {c.plural} · {n}
-                </button>
-              );
-            })}
+            {CATEGORIES.filter((c) => items.some((g) => g.category === c.value)).map((c) => (
+              <button
+                type="button"
+                key={c.value}
+                className="chip"
+                data-active={cat === c.value}
+                onClick={() => setCat(c.value)}
+              >
+                {c.plural}
+              </button>
+            ))}
           </div>
-          <div className="mb-5 flex flex-wrap gap-2">
+          <div className="filter-row mb-5 flex flex-wrap gap-2">
             <button
               type="button"
               className="chip"

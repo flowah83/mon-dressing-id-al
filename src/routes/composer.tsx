@@ -163,7 +163,7 @@ function Composer() {
         })}
       </div>
       <div
-        className="fixed inset-x-0 z-30 mx-auto max-w-lg px-4"
+        className="composer-dock fixed inset-x-0 z-30 mx-auto max-w-lg px-4"
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 4.75rem)" }}
       >
         <div className="composer-sheet space-y-2 rounded-3xl border border-border bg-card/95 p-3 shadow-lift backdrop-blur">
@@ -186,7 +186,7 @@ function Composer() {
             aria-label="Nom de la tenue"
           />
           <Button
-            className="min-h-11 w-full"
+            className="ios-fill min-h-11 w-full"
             disabled={picked.length < 2 || save.isPending || already}
             onClick={() => void submit()}
           >

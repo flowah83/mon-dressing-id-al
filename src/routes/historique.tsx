@@ -8,7 +8,7 @@ import { useWornLog } from "@/components/vestiaire/ritual";
 import { Collage, EmptyState, Page, PageHeader } from "@/components/vestiaire/ui";
 import { useGarments } from "@/lib/store";
 import type { Garment } from "@/lib/wardrobe";
-import { todayISO, type WornEntry } from "@/lib/worn";
+import { todayISO, weekDates, type WornEntry } from "@/lib/worn";
 
 export const Route = createFileRoute("/historique")({
   head: () => ({
@@ -48,6 +48,7 @@ function Historique() {
   return (
     <Page>
       <PageHeader back eyebrow="Jours portés" title="Historique" />
+      <WeekSummary entries={entries} today={today} />
       {unworn.length > 0 && (
         <p className="inset-note mb-4">
           {unworn.length === 1
@@ -106,7 +107,7 @@ function WornDay({
     .filter((garment): garment is Garment => !!garment);
   return (
     <section>
-      <h2 className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <h2 className="history-kicker mb-2 px-1 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
         {heading(entry.date, today)}
       </h2>
       <article className="rounded-[var(--radius-card)] bg-card p-3 shadow-soft">
@@ -116,6 +117,41 @@ function WornDay({
           {pieces.length ? pieces.map((garment) => garment.name).join(" · ") : "Pièces retirées du dressing"}
         </p>
       </article>
+    </section>
+  );
+}
+
+function WeekSummary({ entries, today }: { entries: WornEntry[]; today: string }) {
+  const dates = weekDates(today);
+  const noted = new Set(entries.map((entry) => entry.date));
+  const count = dates.filter((date) => noted.has(date)).length;
+  const labels = ["L", "M", "M", "J", "V", "S", "D"];
+  return (
+    <section className="week-summary mb-4 rounded-[var(--radius-card)] bg-card p-4 shadow-soft">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-[17px] font-semibold tracking-[-0.02em]">Cette semaine</h2>
+        <p className="text-[13px] text-muted-foreground">
+          {count === 0 ? "Aucun jour noté" : `${count} tenue${count > 1 ? "s" : ""}`}
+        </p>
+      </div>
+      <div className="mt-4 grid grid-cols-7">
+        {dates.map((date, index) => {
+          const on = noted.has(date);
+          const isToday = date === today;
+          return (
+            <div key={date} className="flex flex-col items-center gap-1.5">
+              <svg className="week-ring" viewBox="0 0 36 36" aria-hidden>
+                <circle className="week-ring-track" cx="18" cy="18" r="14" />
+                {on ? <circle className="week-ring-on" cx="18" cy="18" r="14" /> : null}
+                {isToday && !on ? <circle className="week-ring-today" cx="18" cy="18" r="14" /> : null}
+              </svg>
+              <span className={`text-[11px] font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>
+                {labels[index]}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
 }
@@ -147,7 +183,7 @@ function MonthCalendar({
   ];
 
   return (
-    <section className="mb-6 rounded-[var(--radius-card)] bg-card p-4 shadow-soft" aria-label="Calendrier des tenues portées">
+    <section className="month-cal mb-6 rounded-[var(--radius-card)] bg-card p-4 shadow-soft" aria-label="Calendrier des tenues portées">
       <div className="mb-3 flex items-center justify-between gap-2">
         <button
           type="button"

@@ -15,7 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AccountProvider } from "@/lib/account";
 import { shouldRegisterServiceWorker } from "@/lib/pwa";
 import { ModeProvider } from "@/lib/store";
-import { BottomNav, DemoBanner } from "@/components/vestiaire/ui";
+import { BottomNav, DemoBanner, IosChrome } from "@/components/vestiaire/ui";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -165,6 +165,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AccountProvider>
         <ModeProvider>
+          <IosChrome />
           <OfflineNote />
           <DemoBanner />
           <Outlet />

@@ -1,6 +1,7 @@
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { ChevronLeft, Heart, Layers, Plus, Settings2, Shirt, Sparkles } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { flattenCatalogue } from "@/lib/catalogue-photo";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -68,7 +69,7 @@ export function BottomNav() {
   );
 }
 
-export function BackButton() {
+export function BackButton({ icon = false }: { icon?: boolean }) {
   const router = useRouter();
   return (
     <button
@@ -77,11 +78,56 @@ export function BackButton() {
         if (typeof window !== "undefined" && window.history.length > 1) router.history.back();
         else void router.navigate({ to: "/" });
       }}
-      className="-ml-2 inline-flex min-h-11 items-center gap-0.5 pr-3 text-sm font-medium"
+      className={
+        icon
+          ? "ios-back press grid size-11 place-items-center"
+          : "-ml-2 inline-flex min-h-11 items-center gap-0.5 pr-3 text-sm font-medium"
+      }
+      aria-label="Retour"
     >
-      <ChevronLeft className="size-5" />
-      Retour
+      <ChevronLeft className={icon ? "size-7" : "size-5"} strokeWidth={icon ? 2.25 : 2} />
+      {icon ? null : "Retour"}
     </button>
+  );
+}
+
+export function IosChrome() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!root.dataset["theme"]?.startsWith("apple")) return;
+    const onScroll = () => {
+      const p = Math.min(1, Math.max(0, window.scrollY / 48));
+      root.style.setProperty("--title-p", p.toFixed(3));
+      root.dataset["collapsed"] = p > 0.65 ? "true" : "false";
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [pathname]);
+  return (
+    <div className="ios-status" aria-hidden>
+      <span className="ios-island" />
+      <span className="ios-time">9:41</span>
+      <span className="ios-glyphs">
+        <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor">
+          <rect x="0" y="7" width="3" height="5" rx="0.6" />
+          <rect x="5" y="4.5" width="3" height="7.5" rx="0.6" />
+          <rect x="10" y="2" width="3" height="10" rx="0.6" />
+          <rect x="15" y="0" width="3" height="12" rx="0.6" />
+        </svg>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+          <path d="M1 4.2C3.2 2 6.2 1 8 1s4.8 1 7 3.2" />
+          <path d="M3.2 6.6C4.6 5.2 6.3 4.5 8 4.5s3.4.7 4.8 2.1" />
+          <path d="M5.6 9.1c.7-.7 1.5-1 2.4-1s1.7.3 2.4 1" />
+        </svg>
+        <svg width="27" height="13" viewBox="0 0 27 13" fill="currentColor">
+          <rect x="0.5" y="0.5" width="22" height="12" rx="3" fill="none" stroke="currentColor" strokeOpacity="0.4" />
+          <rect x="2" y="2" width="16" height="9" rx="1.4" />
+          <path d="M24 4.2v4.6c.8-.3 1.5-1.2 1.5-2.3S24.8 4.5 24 4.2z" opacity="0.4" />
+        </svg>
+      </span>
+    </div>
   );
 }
 
@@ -99,16 +145,23 @@ export function PageHeader({
   compact?: boolean;
 }) {
   return (
-    <header className="pt-safe pb-4">
-      {back && <BackButton />}
+    <header className="page-header pt-safe pb-4">
+      <div className="ios-bar">
+        <div className="ios-bar-side">{back ? <BackButton icon /> : null}</div>
+        <p className="ios-inline-title">{title}</p>
+        <div className="ios-bar-side ios-bar-end">{action}</div>
+      </div>
+      {back ? (
+        <div className="flow-back">
+          <BackButton />
+        </div>
+      ) : null}
       <div className="flex items-end justify-between gap-4">
         <div className="min-w-0">
           {eyebrow && <p className="eyebrow mb-1">{eyebrow}</p>}
-          <h1 className={compact ? "leading-[1.05]" : "leading-[1.05] md:text-5xl"}>
-            {title}
-          </h1>
+          <h1 className={compact ? "leading-[1.05]" : "leading-[1.05] md:text-5xl"}>{title}</h1>
         </div>
-        {action}
+        <div className="large-action">{action}</div>
       </div>
     </header>
   );
@@ -130,7 +183,7 @@ export function SettingsLink() {
     <Link
       to="/reglages"
       aria-label="Réglages, compte et sauvegarde"
-      className="grid size-11 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground"
+      className="settings-link grid size-11 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground"
     >
       <Settings2 className="size-5" />
     </Link>
@@ -147,25 +200,34 @@ export function DemoBanner() {
   const [confirmClear, setConfirmClear] = useState(false);
   if (mode !== "demo") return null;
   return (
-    <div className="sticky top-0 z-30 bg-demo text-demo-foreground">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-1 text-sm md:px-8">
+    <div className="demo-banner sticky top-0 z-30 bg-demo text-demo-foreground">
+      <div className="demo-bar mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-1 text-sm md:px-8">
         <span className="font-semibold">Exemple · pas vos vêtements</span>
         <span className="flex shrink-0">
           <button
             type="button"
-            className="press min-h-11 px-2 underline underline-offset-4"
+            className="demo-action press min-h-11 px-2 underline underline-offset-4"
             onClick={() => demo.exit()}
           >
             Quitter
           </button>
           <button
             type="button"
-            className="press min-h-11 px-2 underline underline-offset-4"
+            className="demo-action press min-h-11 px-2 underline underline-offset-4"
             onClick={() => setConfirmClear(true)}
           >
             Effacer
           </button>
         </span>
+      </div>
+      <div className="demo-pill">
+        <span>Exemple</span>
+        <button type="button" className="press" onClick={() => demo.exit()}>
+          Quitter
+        </button>
+        <button type="button" className="press" onClick={() => setConfirmClear(true)}>
+          Effacer
+        </button>
       </div>
       <AlertDialog open={confirmClear} onOpenChange={setConfirmClear}>
         <AlertDialogContent>
@@ -202,14 +264,40 @@ export function GarmentImage({
   className?: string;
   eager?: boolean;
 }) {
-  const src = useImageSrc(g);
+  const raw = useImageSrc(g);
+  const [shown, setShown] = useState(raw);
+  const [mark, setMark] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!raw) {
+      setShown(undefined);
+      setMark(undefined);
+      return;
+    }
+    const apple = document.documentElement.dataset["theme"]?.startsWith("apple") ?? false;
+    if (!apple) {
+      setShown(raw);
+      setMark("0");
+      return;
+    }
+    let cancel = false;
+    setMark(undefined);
+    void flattenCatalogue(raw).then((url) => {
+      if (cancel) return;
+      setShown(url);
+      setMark(url !== raw ? "1" : "0");
+    });
+    return () => {
+      cancel = true;
+    };
+  }, [raw]);
   return (
     <div className={cn("garment-photo overflow-hidden bg-photo", className)}>
-      {src ? (
+      {shown ? (
         <img
-          src={src}
+          src={shown}
           alt={g.name}
           loading={eager ? "eager" : "lazy"}
+          data-flat={mark}
           className="h-full w-full"
         />
       ) : (
@@ -248,7 +336,7 @@ export function GarmentCard({ g }: { g: Garment }) {
         />
         <button
           type="button"
-          className="absolute right-0 top-0 grid size-11 place-items-center"
+          className="heart-btn absolute right-1.5 top-1.5 grid size-11 place-items-center"
           aria-label={g.favorite ? "Retirer des favoris" : "Mettre en favori"}
           aria-pressed={g.favorite}
           onClick={(e) => {
@@ -257,8 +345,16 @@ export function GarmentCard({ g }: { g: Garment }) {
             save.mutate({ ...g, favorite: !g.favorite });
           }}
         >
-          <span className="grid size-8 place-items-center rounded-full bg-card/90 text-primary">
-            <Heart className={cn("size-4", g.favorite && "fill-current")} />
+          <span
+            className={cn(
+              "heart-face grid size-8 place-items-center rounded-full bg-card/90 text-primary",
+              g.favorite && "is-on",
+            )}
+          >
+            <Heart
+              className={cn("size-[18px]", g.favorite && "fill-current")}
+              strokeWidth={g.favorite ? 0 : 1.75}
+            />
           </span>
         </button>
         {!g.available && (
@@ -268,8 +364,8 @@ export function GarmentCard({ g }: { g: Garment }) {
         )}
       </div>
       <div className="mt-2 px-0.5">
-        <p className="truncate text-sm font-medium">{g.name}</p>
-        <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+        <p className="garment-name truncate text-sm font-medium">{g.name}</p>
+        <div className="garment-meta mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
           {g.colors.slice(0, 3).map((c) => (
             <Swatch key={c} color={c} />
           ))}
