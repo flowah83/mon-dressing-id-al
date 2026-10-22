@@ -1,11 +1,30 @@
-import type { Session, SupabaseClient } from "@supabase/supabase-js";
+import type { Session } from "@supabase/supabase-js";
 import { syncAccessCookie } from "./access-cookie";
-import { getSupabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
+import { browserEnv, readSupabaseConfig } from "./supabase-env";
 import { parisDay } from "./quota";
 
-export { getSupabase, isCloudConfigured } from "@/integrations/supabase/client";
-
+export { supabase };
 export const CACHE_OWNER_KEY = "vestiaire-cache-user";
+
+export type CloudClient = typeof supabase;
+
+let configured: boolean | undefined;
+
+/** True when Lovable Cloud has written its public variables. */
+export function isCloudConfigured(): boolean {
+  if (configured === undefined) configured = readSupabaseConfig(browserEnv()) !== null;
+  return configured;
+}
+
+export function resetBrowserSupabaseForTests() {
+  configured = undefined;
+}
+
+/** The Cloud client, or null when no backend is connected. */
+export function getSupabase(): CloudClient | null {
+  return isCloudConfigured() ? supabase : null;
+}
 
 export function readCacheOwner(): string | null {
   if (typeof window === "undefined") return null;
@@ -26,14 +45,14 @@ export function writeCacheOwner(userId: string) {
 }
 
 export async function ensureAccessCookie(): Promise<void> {
-  const supabase = getSupabase();
-  if (!supabase) return;
+  const client = getSupabase();
+  if (!client) return;
   try {
-    const { data } = await supabase.auth.getSession();
+    const { data } = await client.auth.getSession();
     let session = data.session;
     const expiresAt = session?.expires_at ?? 0;
     if (session && expiresAt * 1000 < Date.now() + 60_000) {
-      const refreshed = await supabase.auth.refreshSession();
+      const refreshed = await client.auth.refreshSession();
       session = refreshed.data.session ?? session;
     }
     syncAccessCookie(session?.access_token ?? null, session?.expires_at);
@@ -47,13 +66,11 @@ export function applySessionCookie(session: Session | null) {
 }
 
 export async function fetchTodayUsage(): Promise<{ analyses: number; advice: number } | null> {
-  const supabase = getSupabase();
-  if (!supabase) return null;
-  const { data, error } = await supabase.from("ai_usage").select("analyses, advice").eq("day", parisDay()).maybeSingle();
+  const client = getSupabase();
+  if (!client) return null;
+  const { data, error } = await client.from("ai_usage").select("analyses, advice").eq("day", parisDay()).maybeSingle();
   if (error) return null;
   if (!data) return { analyses: 0, advice: 0 };
   const row = data as { analyses?: number; advice?: number };
   return { analyses: row.analyses ?? 0, advice: row.advice ?? 0 };
 }
-
-export type { SupabaseClient };
