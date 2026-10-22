@@ -12,7 +12,7 @@ import { analyzeGarment } from "@/lib/ai.functions";
 import { ensureAccessCookie } from "@/lib/cloud";
 import { uid } from "@/lib/db";
 import { blobToDataUrl, compressImage } from "@/lib/image";
-import { useDemoControls, useMode, useSaveGarment } from "@/lib/store";
+import { useMode, useSaveGarment } from "@/lib/store";
 import {
   CATEGORIES,
   COLORS,
@@ -46,7 +46,6 @@ type Status = "idle" | "compress" | "analyse" | "ready" | "saving";
 
 function Ajouter() {
   const { mode } = useMode();
-  const demo = useDemoControls();
   const auth = useAuth();
   const navigate = useNavigate();
   const analyze = useServerFn(analyzeGarment);
@@ -219,28 +218,11 @@ function Ajouter() {
         eyebrow={mode === "demo" ? "Ajout à la démonstration" : "Nouvelle pièce"}
         title="Ajouter"
       />
-      {mode === "demo" && (
-        <div className="mb-5 rounded-3xl bg-demo p-5 text-demo-foreground">
-          <p className="font-display text-3xl leading-none">Cette photo va dans la démonstration</p>
-          <p className="mt-2 text-sm">
-            Elle ne sera pas ajoutée à Mon dressing. Les pièces d'exemple restent à part de vos
-            vrais vêtements.
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="mt-4 min-h-11 bg-card"
-            onClick={() => demo.exit()}
-          >
-            Aller à Mon dressing
-          </Button>
-        </div>
-      )}
       {auth.ready && !auth.user && (
         <p className="mb-4 text-sm text-muted-foreground">
           {auth.configured
-            ? "Pour l'analyse automatique, connectez-vous dans Réglages. Sans compte, la fiche se remplit à la main."
-            : "L'analyse automatique n'est pas encore activée. Vous pourrez remplir la fiche vous-même."}
+            ? "Pour remplir la fiche depuis la photo, connectez-vous dans Réglages. Sans compte, vous la remplissez à la main."
+            : "La lecture de la photo n'est pas disponible pour le moment. Vous pouvez remplir la fiche vous-même."}
         </p>
       )}
       <input
@@ -266,26 +248,30 @@ function Ajouter() {
       />
 
       {!preview && status !== "compress" && cutout.phase !== "working" && (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="add-choices">
           <button
+            type="button"
             onClick={() => camRef.current?.click()}
-            className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-3xl bg-primary p-6 text-primary-foreground shadow-lift"
+            className="add-choice press"
           >
-            <Camera className="size-8" strokeWidth={1.5} />
-            <span className="font-display text-2xl">Prendre une photo</span>
-            <span className="text-sm opacity-80">
-              À plat ou sur cintre, bonne lumière. Le fond est retiré sur cet appareil.
+            <Camera className="size-7 shrink-0" strokeWidth={1.75} />
+            <span className="font-display min-w-[7.5rem]">Prendre une photo</span>
+            <span className="ml-auto max-w-[9.5rem] text-right text-[13px] font-normal leading-4 text-muted-foreground">
+              À plat ou sur cintre, fond uni, bonne lumière
             </span>
           </button>
           <button
+            type="button"
             onClick={() => galRef.current?.click()}
-            className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-3xl border border-border bg-card p-6"
+            className="add-choice press"
           >
-            <ImageIcon className="size-8 text-primary" strokeWidth={1.5} />
-            <span className="font-display text-2xl">Choisir dans la galerie</span>
-            <span className="text-sm text-muted-foreground">Une pièce par photo</span>
+            <ImageIcon className="size-7 shrink-0" strokeWidth={1.75} />
+            <span className="font-display min-w-[7.5rem]">Choisir dans la galerie</span>
+            <span className="ml-auto max-w-[9.5rem] text-right text-[13px] font-normal leading-4 text-muted-foreground">
+              Une pièce par photo
+            </span>
           </button>
-          <div className="sm:col-span-2">
+          <div className="border-t border-border px-4 py-3">
             <LocalNotice />
           </div>
         </div>

@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useLocation,
   HeadContent,
   Scripts,
   type ErrorComponentProps,
@@ -15,7 +16,8 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AccountProvider } from "@/lib/account";
 import { shouldRegisterServiceWorker } from "@/lib/pwa";
 import { ModeProvider } from "@/lib/store";
-import { BottomNav, DemoBanner } from "@/components/vestiaire/ui";
+import { ViewTransitions } from "@/components/vestiaire/transitions";
+import { BottomNav, IosChrome } from "@/components/vestiaire/ui";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -80,7 +82,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1, viewport-fit=cover",
+      },
       { title: "Vestiaire — votre dressing et vos tenues" },
       {
         name: "description",
@@ -93,10 +98,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "theme-color", content: "#f8f4ec" },
+      { name: "theme-color", content: "#F2F2F7" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "Vestiaire" },
     ],
     links: [
@@ -104,12 +109,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", type: "image/png", href: "/favicon.png" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Manrope:wght@400;500;600;700&display=swap",
-      },
     ],
   }),
   shellComponent: RootShell,
@@ -120,9 +119,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="fr">
+    <html lang="fr" data-theme="apple">
       <head>
         <HeadContent />
+        <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var r=document.documentElement,q=matchMedia('(prefers-color-scheme: dark)');var a=function(){r.dataset.theme=q.matches?'apple-sombre':'apple';};a();q.addEventListener('change',a);}catch(e){}",
+          }}
+        />
       </head>
       <body>
         {children}
@@ -135,6 +142,8 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+  const { pathname } = useLocation();
+  const welcome = pathname === "/bienvenue";
 
   useEffect(() => {
     if (!shouldRegisterServiceWorker(import.meta.env.PROD, "serviceWorker" in navigator)) return;
@@ -145,6 +154,7 @@ function RootComponent() {
     const paths = [
       "/",
       "/ajouter",
+      "/bienvenue",
       "/composer",
       "/conseiller",
       "/favoris",
@@ -159,15 +169,33 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AccountProvider>
         <ModeProvider>
+          <ViewTransitions />
+          <WelcomeGate />
+          <IosChrome />
           <OfflineNote />
-          <DemoBanner />
           <Outlet />
-          <BottomNav />
-          <Toaster position="top-center" />
+          {welcome ? null : <BottomNav />}
+          <Toaster position="bottom-center" offset={welcome ? 24 : 88} />
         </ModeProvider>
       </AccountProvider>
     </QueryClientProvider>
   );
+}
+
+function WelcomeGate() {
+  const router = useRouter();
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (pathname === "/bienvenue") return;
+    try {
+      if (localStorage.getItem("vestiaire-welcome") === "1") return;
+      if (localStorage.getItem("vestiaire-mode") === "demo") return;
+    } catch {
+      return;
+    }
+    void router.navigate({ to: "/bienvenue" });
+  }, [pathname, router]);
+  return null;
 }
 
 function OfflineNote() {
@@ -185,8 +213,7 @@ function OfflineNote() {
   if (!offline) return null;
   return (
     <p className="bg-foreground px-5 py-3 text-center text-sm text-background">
-      Hors ligne. Le dressing de cet appareil reste ouvert. La météo, le conseil du styliste et la
-      copie en ligne reprendront avec le réseau.
+      Hors ligne. Votre dressing reste ouvert. La météo et la note du styliste attendent le réseau.
     </p>
   );
 }

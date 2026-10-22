@@ -35,7 +35,7 @@ function Favoris() {
   const empty = !isLoading && outfits.length === 0 && favorites.length === 0;
   return (
     <Page>
-      <PageHeader eyebrow="Ce que vous aimez" title="Favoris" action={<HistoryLink />} />
+      <PageHeader title="Favoris" action={<HistoryLink />} />
       {empty && (
         <EmptyState
           title="Rien en favori"
@@ -48,8 +48,8 @@ function Favoris() {
       )}
       {favorites.length > 0 && (
         <section className="mb-10">
-          <h2 className="mb-4 text-3xl">Pièces au cœur</h2>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4">
+          <h2 className="history-kicker mb-4">Pièces au cœur</h2>
+          <div className="dressing-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
             {favorites.map((g) => (
               <GarmentCard key={g.id} g={g} />
             ))}
@@ -58,7 +58,7 @@ function Favoris() {
       )}
       {outfits.length > 0 && (
         <section>
-          <h2 className="text-3xl">Tenues gardées</h2>
+          <h2 className="history-kicker">Tenues gardées</h2>
           <p className="mb-4 mt-2 text-sm text-muted-foreground">
             J'aime et Moins mon style guident les prochaines suggestions du conseiller.
           </p>
@@ -68,8 +68,11 @@ function Favoris() {
                 .map((id) => items.find((g) => g.id === id))
                 .filter((g): g is NonNullable<typeof g> => !!g);
               return (
-                <article key={o.id} className="rounded-3xl bg-card p-3 shadow-soft">
-                  <Collage items={pieces} />
+                <article
+                  key={o.id}
+                  className="rounded-[var(--radius-card)] bg-card p-3 shadow-soft"
+                >
+                  <Collage items={pieces} compact />
                   <OutfitName outfit={o} onSave={(name) => save.mutate({ ...o, name })} />
                   {o.explanation && (
                     <p className="mt-2 px-1 text-sm text-muted-foreground">{o.explanation}</p>

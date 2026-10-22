@@ -1,4 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Camera, Heart, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -9,8 +11,8 @@ import { usePhotoCutout } from "@/hooks/use-photo-cutout";
 import { uid } from "@/lib/db";
 import { blobFromGarment, copyToPersonal } from "@/lib/garment-copy";
 import { useDeleteGarment, useGarment, useSaveGarment, useWorn } from "@/lib/store";
-import { formatWearLine, localDateISO, wearStats } from "@/lib/wear";
-import type { Garment } from "@/lib/wardrobe";
+import { localDateISO, parseISODate, shiftISODate, wearStats } from "@/lib/wear";
+import { catLabel, colorInfo, SEASONS, type Garment } from "@/lib/wardrobe";
 
 export const Route = createFileRoute("/piece/$id")({
   head: () => ({
@@ -189,10 +191,27 @@ function Piece() {
 
   return (
     <Page>
-      <PageHeader back eyebrow="Fiche" title={g.name} />
+      <PageHeader back title={g.name} />
       <div className="grid gap-8 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <div>
-          <GarmentImage g={g} eager fit="contain" className="aspect-[4/5] rounded-3xl" />
+          <div className="relative">
+            <div style={{ viewTransitionName: `garment-${g.id}` }}>
+              <GarmentImage
+                g={g}
+                eager
+                className="fiche-photo aspect-[4/5] w-full rounded-[18px]"
+              />
+            </div>
+            <button
+              type="button"
+              className="fiche-photo-btn press"
+              aria-label="Changer la photo"
+              disabled={cutout.phase === "working"}
+              onClick={() => fileRef.current?.click()}
+            >
+              <Camera className="size-5" strokeWidth={1.75} />
+            </button>
+          </div>
           {cutout.phase === "working" && (
             <div className="mt-3">
               <BusyStatus
@@ -210,9 +229,7 @@ function Piece() {
               />
             </div>
           )}
-          <p className="mt-3 text-sm text-muted-foreground">
-            {formatWearLine(wearStats(g.id, worn), localDateISO())}
-          </p>
+          <FicheFacts g={g} worn={worn} />
           <input
             ref={fileRef}
             type="file"
@@ -223,15 +240,6 @@ function Piece() {
               e.target.value = "";
             }}
           />
-          <Button
-            type="button"
-            variant="outline"
-            className="mt-4 min-h-11 w-full"
-            disabled={cutout.phase === "working"}
-            onClick={() => fileRef.current?.click()}
-          >
-            <Camera /> Changer la photo
-          </Button>
           {g.backgroundRemoved && g.sourceImage ? (
             <Button
               type="button"
@@ -316,5 +324,51 @@ function Piece() {
         </div>
       </div>
     </Page>
+  );
+}
+
+function FicheFacts({
+  g,
+  worn,
+}: {
+  g: Garment;
+  worn: { itemIds: string[]; wornOn: string; deletedAt?: number | undefined }[];
+}) {
+  const stats = wearStats(g.id, worn);
+  const today = localDateISO();
+  const color =
+    g.colors.map((value) => colorInfo(value)?.label ?? value).join(", ") || "Non renseignée";
+  const season = g.seasons.length
+    ? g.seasons
+        .map((value) => SEASONS.find((item) => item.value === value)?.label ?? value)
+        .join(", ")
+    : "Toute l'année";
+  const times = stats.count <= 0 ? "Jamais" : stats.count === 1 ? "1 fois" : `${stats.count} fois`;
+  let last = "Jamais";
+  if (stats.lastOn) {
+    if (stats.lastOn === today) last = "Aujourd'hui";
+    else if (stats.lastOn === shiftISODate(today, -1)) last = "Hier";
+    else {
+      const date = parseISODate(stats.lastOn);
+      last = date ? format(date, "d MMMM yyyy", { locale: fr }) : stats.lastOn;
+    }
+  }
+  const rows = [
+    ["Catégorie", catLabel(g.category)],
+    ["Couleur", color],
+    ["Saison", season],
+    ["Marque", "Non renseignée"],
+    ["Portée", times],
+    ["Dernière fois", last],
+  ] as const;
+  return (
+    <dl className="inset-group">
+      {rows.map(([label, value]) => (
+        <div key={label} className="inset-row">
+          <dt>{label}</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }

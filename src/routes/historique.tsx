@@ -1,12 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Collage, EmptyState, Page, PageHeader } from "@/components/vestiaire/ui";
+import { Collage, EmptyState, OutfitHeading, Page, PageHeader } from "@/components/vestiaire/ui";
 import { useDeleteWorn, useGarments, useWorn } from "@/lib/store";
-import { formatWornHeading, groupWornByDate, localDateISO, neverWornHint } from "@/lib/wear";
+import {
+  formatWornHeading,
+  groupWornByDate,
+  localDateISO,
+  neverWornIds,
+  wearStreak,
+  weekDates,
+} from "@/lib/wear";
 
 export const Route = createFileRoute("/historique")({
   head: () => ({
@@ -36,15 +43,22 @@ function Historique() {
   }, [worn]);
   const visible = selected ? worn.filter((entry) => entry.wornOn === selected) : worn;
   const groups = groupWornByDate(visible);
-  const unwornNames = items
-    .filter((garment) => !worn.some((entry) => entry.itemIds.includes(garment.id)))
-    .map((garment) => garment.name);
-  const hint = neverWornHint(unwornNames);
+  const unwornCount = neverWornIds(
+    items.map((garment) => garment.id),
+    worn,
+  ).length;
 
   return (
     <Page>
-      <PageHeader back eyebrow="Jours portés" title="Historique" />
-      {hint && <p className="mb-4 text-sm text-muted-foreground">{hint}</p>}
+      <PageHeader back title="Historique" />
+      <WeekSummary worn={worn} today={today} />
+      {unwornCount > 0 && (
+        <p className="inset-note mb-4">
+          {unwornCount === 1
+            ? "1 pièce n'a pas encore été portée."
+            : `${unwornCount} pièces n'ont pas encore été portées.`}
+        </p>
+      )}
       <MonthCalendar
         month={month}
         onMonth={setMonth}
@@ -63,7 +77,7 @@ function Historique() {
       ) : worn.length === 0 ? (
         <EmptyState
           title="Aucune tenue portée"
-          text="Depuis le conseiller, le compositeur ou les favoris, touchez « Je la porte aujourd'hui »."
+          text="Depuis le conseiller, le compositeur ou les favoris, touchez « Je la porte »."
         >
           <Button asChild>
             <Link to="/conseiller">Ouvrir le conseiller</Link>
@@ -75,21 +89,30 @@ function Historique() {
         <div className="space-y-8">
           {groups.map((group) => (
             <section key={group.wornOn}>
-              <h2 className="mb-3 text-3xl">{formatWornHeading(group.wornOn, today)}</h2>
+              <h2 className="history-kicker mb-2 px-1">{formatWornHeading(group.wornOn, today)}</h2>
               <div className="grid gap-4 sm:grid-cols-2">
                 {group.entries.map((entry) => {
                   const pieces = entry.itemIds
                     .map((id) => items.find((garment) => garment.id === id))
                     .filter((garment): garment is NonNullable<typeof garment> => !!garment);
                   return (
-                    <article key={entry.id} className="rounded-3xl bg-card p-3 shadow-soft">
-                      <Collage items={pieces} />
-                      <p className="mt-3 px-1 font-medium">{entry.name || "Tenue portée"}</p>
-                      <p className="mt-1 px-1 text-sm text-muted-foreground">
-                        {pieces.length
-                          ? pieces.map((garment) => garment.name).join(" · ")
-                          : "Pièces retirées du dressing"}
-                      </p>
+                    <article
+                      key={entry.id}
+                      className="rounded-[var(--radius-card)] bg-card p-3 shadow-soft"
+                    >
+                      <Collage items={pieces} compact />
+                      <div className="mt-3 px-1">
+                        {pieces.length ? (
+                          <OutfitHeading pieces={pieces} />
+                        ) : (
+                          <p className="font-medium">{entry.name || "Tenue portée"}</p>
+                        )}
+                        {!pieces.length ? (
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Pièces retirées du dressing
+                          </p>
+                        ) : null}
+                      </div>
                       <button
                         type="button"
                         className="chip mt-3"
@@ -109,6 +132,59 @@ function Historique() {
         </div>
       )}
     </Page>
+  );
+}
+
+function WeekSummary({
+  worn,
+  today,
+}: {
+  worn: { wornOn: string; deletedAt?: number | undefined }[];
+  today: string;
+}) {
+  const dates = weekDates(today);
+  const noted = new Set(worn.filter((entry) => !entry.deletedAt).map((entry) => entry.wornOn));
+  const count = dates.filter((date) => noted.has(date)).length;
+  const streak = wearStreak(worn, today);
+  const labels = ["L", "M", "M", "J", "V", "S", "D"];
+  return (
+    <section className="week-summary mb-4 rounded-[var(--radius-card)] bg-card shadow-soft">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-[1.0625rem] font-semibold tracking-[-0.02em]">Cette semaine</h2>
+          {streak > 0 ? (
+            <p className="streak-capsule mt-2">
+              {streak} jour{streak > 1 ? "s" : ""} d'affilée
+            </p>
+          ) : null}
+        </div>
+        <p className="text-[0.8125rem] text-muted-foreground">
+          {count === 0 ? "Aucun jour noté" : `${count} tenue${count > 1 ? "s" : ""}`}
+        </p>
+      </div>
+      <div className="mt-4 grid grid-cols-7">
+        {dates.map((date, index) => {
+          const on = noted.has(date);
+          const isToday = date === today;
+          return (
+            <div key={date} className="flex flex-col items-center gap-1.5">
+              <svg className="week-ring" viewBox="0 0 36 36" aria-hidden>
+                <circle className="week-ring-track" cx="18" cy="18" r="14" />
+                {on ? <circle className="week-ring-on" cx="18" cy="18" r="14" /> : null}
+                {isToday && !on ? (
+                  <circle className="week-ring-today" cx="18" cy="18" r="14" />
+                ) : null}
+              </svg>
+              <span
+                className={`text-[11px] font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}
+              >
+                {labels[index]}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -140,29 +216,29 @@ function MonthCalendar({
 
   return (
     <section
-      className="mb-6 rounded-3xl bg-card p-4 shadow-soft"
+      className="mb-6 rounded-[var(--radius-card)] bg-card p-4 shadow-soft"
       aria-label="Calendrier des tenues portées"
     >
       <div className="mb-3 flex items-center justify-between gap-2">
         <button
           type="button"
-          className="min-h-11 min-w-11 rounded-full px-3 text-sm font-medium"
+          className="press grid size-11 place-items-center rounded-full text-primary"
           aria-label="Mois précédent"
           onClick={() => onMonth(new Date(year, monthIndex - 1, 1))}
         >
-          ‹
+          <ChevronLeft className="size-5" />
         </button>
-        <h2 className="text-2xl capitalize">{title}</h2>
+        <h2 className="text-[17px] font-semibold tracking-[-0.02em]">{title}</h2>
         <button
           type="button"
-          className="min-h-11 min-w-11 rounded-full px-3 text-sm font-medium"
+          className="press grid size-11 place-items-center rounded-full text-primary"
           aria-label="Mois suivant"
           onClick={() => onMonth(new Date(year, monthIndex + 1, 1))}
         >
-          ›
+          <ChevronRight className="size-5" />
         </button>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground">
+      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-muted-foreground">
         {["L", "M", "M", "J", "V", "S", "D"].map((day, index) => (
           <span key={`${day}-${index}`} className="py-1">
             {day}
@@ -183,11 +259,15 @@ function MonthCalendar({
               aria-label={
                 count ? `${day} ${title}, ${count} tenue${count > 1 ? "s" : ""}` : `${day} ${title}`
               }
-              className={`flex min-h-11 flex-col items-center justify-center rounded-xl text-sm ${active ? "bg-primary text-primary-foreground" : count ? "bg-accent text-accent-foreground" : ""} ${iso === today && !active ? "ring-1 ring-primary" : ""}`}
+              className={`press flex min-h-11 flex-col items-center justify-center rounded-xl text-[15px] ${active ? "bg-primary text-primary-foreground" : ""} ${iso === today && !active ? "font-semibold text-primary" : ""}`}
               onClick={() => onSelect(active ? null : iso)}
             >
               {day}
-              {count > 0 && <span className="mt-0.5 size-1.5 rounded-full bg-current" />}
+              {count > 0 && (
+                <span
+                  className={`mt-0.5 size-1.5 rounded-full ${active ? "bg-primary-foreground" : "bg-primary"}`}
+                />
+              )}
             </button>
           );
         })}
