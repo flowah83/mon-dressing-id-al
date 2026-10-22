@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { WearTodayButton } from "@/components/vestiaire/WearTodayButton";
 import { EmptyState, GarmentImage, Page, PageHeader } from "@/components/vestiaire/ui";
+import { HostedRoute } from "@/components/vestiaire/hosted-route";
+import { useRetainedPiece } from "@/lib/tabs";
 import { cn } from "@/lib/utils";
 import { uid } from "@/lib/db";
 import { findOutfitByPieces } from "@/lib/outfit-match";
@@ -25,11 +27,19 @@ export const Route = createFileRoute("/composer")({
       { property: "og:description", content: "Assemblez vous-même une tenue avec vos pièces." },
     ],
   }),
-  component: Composer,
+  component: ComposerRoute,
 });
 
-function Composer() {
-  const { piece } = Route.useSearch();
+function ComposerRoute() {
+  return (
+    <HostedRoute>
+      <Composer />
+    </HostedRoute>
+  );
+}
+
+export function Composer() {
+  const piece = useRetainedPiece("/composer");
   const { mode } = useMode();
   const { data: items = [] } = useGarments();
   const { data: outfits = [] } = useOutfits();
@@ -37,6 +47,12 @@ function Composer() {
   const navigate = useNavigate();
   const initial = items.find((g) => g.id === piece);
   const [sel, setSel] = useState<string[]>(piece ? [piece] : []);
+  const appliedPiece = useRef(piece);
+  useEffect(() => {
+    if (!piece || piece === appliedPiece.current) return;
+    appliedPiece.current = piece;
+    setSel([piece]);
+  }, [piece]);
   const [name, setName] = useState("");
   const [showLaundry, setShowLaundry] = useState(false);
   const [detent, setDetent] = useState<"peek" | "open">("peek");

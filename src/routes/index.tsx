@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -15,6 +15,7 @@ import {
   SettingsLink,
   Swatch,
 } from "@/components/vestiaire/ui";
+import { HostedRoute } from "@/components/vestiaire/hosted-route";
 import { useDemoControls, useGarments, useMode } from "@/lib/store";
 import { CATEGORIES, COLORS, SEASONS, type Category, type Season } from "@/lib/wardrobe";
 
@@ -33,10 +34,18 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
-  component: Dressing,
+  component: DressingRoute,
 });
 
-function Dressing() {
+function DressingRoute() {
+  return (
+    <HostedRoute>
+      <Dressing />
+    </HostedRoute>
+  );
+}
+
+export function Dressing() {
   const { mode, ready } = useMode();
   const { data, isLoading, error } = useGarments();
   const demo = useDemoControls();
@@ -53,8 +62,10 @@ function Dressing() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const chipsRef = useRef<HTMLDivElement>(null);
   const [chipsOverflow, setChipsOverflow] = useState(false);
+  const onThisTab = useRouterState({ select: (state) => state.location.pathname === "/" });
 
   useEffect(() => {
+    if (!onThisTab) return;
     let startY = 0;
     let active = false;
     const onStart = (event: TouchEvent) => {
@@ -93,7 +104,7 @@ function Dressing() {
       window.removeEventListener("touchmove", onMove);
       window.removeEventListener("touchend", onEnd);
     };
-  }, [qc]);
+  }, [qc, onThisTab]);
 
   const items = useMemo(() => data ?? [], [data]);
   useEffect(() => {
@@ -109,14 +120,18 @@ function Dressing() {
     () => COLORS.filter((c) => items.some((g) => g.colors.includes(c.value))),
     [items],
   );
-  const filtered = items.filter(
-    (g) =>
-      (cat === "all" || g.category === cat) &&
-      (!color || g.colors.includes(color)) &&
-      (!season || g.seasons.length === 0 || g.seasons.includes(season)) &&
-      (!onlyFav || g.favorite) &&
-      (!onlyAvail || g.available) &&
-      (!q || g.name.toLowerCase().includes(q.toLowerCase())),
+  const filtered = useMemo(
+    () =>
+      items.filter(
+        (g) =>
+          (cat === "all" || g.category === cat) &&
+          (!color || g.colors.includes(color)) &&
+          (!season || g.seasons.length === 0 || g.seasons.includes(season)) &&
+          (!onlyFav || g.favorite) &&
+          (!onlyAvail || g.available) &&
+          (!q || g.name.toLowerCase().includes(q.toLowerCase())),
+      ),
+    [items, cat, color, season, onlyFav, onlyAvail, q],
   );
   const hasFilter = cat !== "all" || color || season || onlyFav || onlyAvail || q;
 

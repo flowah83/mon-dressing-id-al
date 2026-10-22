@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { cachedObjectUrl, imageCacheKey } from "./image-cache";
 import * as db from "./db";
 import { requestSync } from "./sync-bridge";
 import { localDateISO, sameDayWear, shiftISODate } from "./wear";
@@ -46,12 +47,19 @@ export function ModeProvider({ children }: { children: ReactNode }) {
 }
 export const useMode = () => useContext(Ctx);
 
+const localList = {
+  staleTime: Number.POSITIVE_INFINITY,
+  gcTime: 30 * 60_000,
+  refetchOnWindowFocus: false,
+} as const;
+
 export function useGarments() {
   const { mode, ready } = useMode();
   return useQuery({
     queryKey: ["garments", mode],
     queryFn: () => db.listGarments(mode),
     enabled: ready,
+    ...localList,
   });
 }
 export function useOutfits() {
@@ -60,11 +68,17 @@ export function useOutfits() {
     queryKey: ["outfits", mode],
     queryFn: () => db.listOutfits(mode),
     enabled: ready,
+    ...localList,
   });
 }
 export function useWorn() {
   const { mode, ready } = useMode();
-  return useQuery({ queryKey: ["worn", mode], queryFn: () => db.listWorn(mode), enabled: ready });
+  return useQuery({
+    queryKey: ["worn", mode],
+    queryFn: () => db.listWorn(mode),
+    enabled: ready,
+    ...localList,
+  });
 }
 export function useGarment(id: string) {
   const { ready } = useMode();
@@ -149,19 +163,26 @@ export function useDeleteWorn() {
   });
 }
 
-/** Object URLs for blob photos, revoked on unmount. */
-export function useImageSrc(g?: Pick<Garment, "image" | "imageUrl"> | null) {
-  const [src, setSrc] = useState<string | undefined>(g?.imageUrl);
-  useEffect(() => {
-    if (g?.image) {
-      const u = URL.createObjectURL(g.image);
-      setSrc(u);
-      return () => URL.revokeObjectURL(u);
-    }
-    setSrc(g?.imageUrl);
-    return undefined;
-  }, [g?.image, g?.imageUrl]);
-  return src;
+/** URL stable pour une photo. Le cache mémoire évite de redécoder à chaque onglet. */
+export function useImageSrc(
+  g?: (Pick<Garment, "image" | "imageUrl"> & Partial<Pick<Garment, "id" | "updatedAt">>) | null,
+) {
+  const image = g?.image;
+  const imageUrl = g?.imageUrl;
+  const id = g?.id;
+  const updatedAt = g?.updatedAt;
+  return useMemo(() => {
+    if (!image) return imageUrl;
+    return cachedObjectUrl(
+      imageCacheKey({
+        image,
+        ...(id ? { id } : {}),
+        ...(imageUrl ? { imageUrl } : {}),
+        ...(updatedAt != null ? { updatedAt } : {}),
+      }),
+      image,
+    );
+  }, [image, imageUrl, id, updatedAt]);
 }
 
 const DEMO: Omit<Garment, "id" | "mode" | "createdAt" | "available" | "favorite" | "notes">[] = [

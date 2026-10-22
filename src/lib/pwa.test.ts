@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isAppShellRequest, shouldRegisterServiceWorker } from "./pwa";
+import { isAppShellRequest, shellCachePolicy, shouldRegisterServiceWorker } from "./pwa";
 
 const app = { origin: "https://vestiaire.test", appOrigin: "https://vestiaire.test" };
 
@@ -54,6 +54,45 @@ describe("cache de l'application", () => {
         origin: "https://api.open-meteo.com",
       }),
     ).toBe(false);
+  });
+
+  it("sert les fichiers hachés depuis le cache et la page tout de suite", () => {
+    expect(
+      shellCachePolicy({
+        ...app,
+        method: "GET",
+        pathname: "/assets/index.js",
+        destination: "script",
+        search: "",
+      }),
+    ).toBe("cache-first");
+    expect(
+      shellCachePolicy({
+        ...app,
+        method: "GET",
+        pathname: "/fonts/InterVariable.woff2",
+        destination: "font",
+        search: "",
+      }),
+    ).toBe("cache-first");
+    expect(
+      shellCachePolicy({
+        ...app,
+        method: "GET",
+        pathname: "/conseiller",
+        destination: "document",
+        search: "",
+      }),
+    ).toBe("stale-while-revalidate");
+    expect(
+      shellCachePolicy({
+        ...app,
+        method: "GET",
+        pathname: "/",
+        destination: "document",
+        search: "?_serverFn=advise",
+      }),
+    ).toBeNull();
   });
 
   it("n'enregistre le service worker qu'en production", () => {

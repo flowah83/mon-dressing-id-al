@@ -199,6 +199,7 @@ function Piece() {
               <GarmentImage
                 g={g}
                 eager
+                definition="full"
                 className="fiche-photo aspect-[4/5] w-full rounded-[18px]"
               />
             </div>

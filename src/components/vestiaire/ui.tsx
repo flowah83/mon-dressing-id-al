@@ -1,8 +1,9 @@
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { ChevronLeft, Heart, Layers, Loader2, Plus, Settings, Shirt, Sparkles } from "lucide-react";
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { memo, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { flattenCatalogue } from "@/lib/catalogue-photo";
+import { imageCacheKey, loadDisplayUrl, peekThumbnail } from "@/lib/image-cache";
+import { isTabPath, rememberTabScroll, type TabPath } from "@/lib/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,17 +21,33 @@ import { COLORS, catLabel, colorInfo, type Garment } from "@/lib/wardrobe";
 
 export function BottomNav() {
   const { pathname } = useLocation();
+  const router = useRouter();
+  const [pressed, setPressed] = useState<TabPath | null>(null);
+  useEffect(() => {
+    setPressed(null);
+  }, [pathname]);
+  const arm = (to: TabPath) => {
+    if (isTabPath(pathname)) rememberTabScroll(pathname);
+    setPressed(to);
+    void router.preloadRoute({ to }).catch(() => undefined);
+  };
   const item = (
     to: "/" | "/conseiller" | "/favoris" | "/composer",
     label: string,
     Icon: typeof Shirt,
   ) => {
-    const active =
-      to === "/" ? pathname === "/" || pathname.startsWith("/piece") : pathname.startsWith(to);
+    const here = pressed ?? pathname;
+    const active = to === "/" ? here === "/" || here.startsWith("/piece") : here.startsWith(to);
     return (
       <Link
         to={to}
+        preload="intent"
         data-active={active ? "true" : "false"}
+        onPointerDown={() => arm(to)}
+        onPointerCancel={() => setPressed(null)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") arm(to);
+        }}
         className={cn(
           "tab-link press flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium",
           active ? "text-primary" : "text-muted-foreground",
@@ -51,11 +68,17 @@ export function BottomNav() {
         {item("/composer", "Composer", Layers)}
         <Link
           to="/ajouter"
+          preload="intent"
           aria-label="Ajouter une pièce"
-          data-active={pathname.startsWith("/ajouter") ? "true" : "false"}
+          data-active={(pressed ?? pathname).startsWith("/ajouter") ? "true" : "false"}
+          onPointerDown={() => arm("/ajouter")}
+          onPointerCancel={() => setPressed(null)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") arm("/ajouter");
+          }}
           className={cn(
             "tab-link press flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 pb-1 text-xs font-medium",
-            pathname.startsWith("/ajouter") ? "text-primary" : "text-muted-foreground",
+            (pressed ?? pathname).startsWith("/ajouter") ? "text-primary" : "text-muted-foreground",
           )}
         >
           <span className="tab-plus -mt-5 grid size-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lift md:mt-0">
@@ -270,73 +293,66 @@ export function DemoSettingsCard() {
   );
 }
 
-function scheduleIdle(task: () => void) {
-  const host = window as Window & {
-    requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
-    cancelIdleCallback?: (id: number) => void;
-  };
-  if (typeof host.requestIdleCallback === "function") {
-    const id = host.requestIdleCallback(task, { timeout: 500 });
-    return () => host.cancelIdleCallback?.(id);
-  }
-  const id = window.setTimeout(task, 48);
-  return () => window.clearTimeout(id);
-}
-
 export function GarmentImage({
   g,
   className,
   eager,
+  definition = "grid",
 }: {
-  g: Pick<Garment, "image" | "imageUrl" | "name">;
+  g: Pick<Garment, "image" | "imageUrl" | "name"> & Partial<Pick<Garment, "id" | "updatedAt">>;
   className?: string;
   eager?: boolean;
+  /** `grid` affiche une vignette. `full` garde la photo de la fiche. */
+  definition?: "grid" | "full";
 }) {
   const raw = useImageSrc(g);
-  const [shown, setShown] = useState(raw);
-  const [mark, setMark] = useState<string | undefined>(undefined);
-  const [ready, setReady] = useState(false);
+  const maxEdge = definition === "full" ? 1200 : 512;
+  const photoKey = imageCacheKey(g);
+  const cacheKey = `${photoKey}@${maxEdge}`;
+  const cached = definition === "grid" ? peekThumbnail(cacheKey) : undefined;
+  const [shown, setShown] = useState<string | undefined>(
+    cached ?? (definition === "full" ? raw : undefined),
+  );
+  const [mark, setMark] = useState<string | undefined>(cached ? "1" : undefined);
   useEffect(() => {
     if (!raw) {
       setShown(undefined);
       setMark(undefined);
-      setReady(false);
       return;
     }
-    setShown(raw);
-    setReady(false);
-    const apple = document.documentElement.dataset["theme"]?.startsWith("apple") ?? false;
-    if (!apple) {
-      setMark("0");
+    if (definition === "full") {
+      setShown(raw);
+      setMark(undefined);
+      return;
+    }
+    const hit = peekThumbnail(cacheKey);
+    if (hit) {
+      setShown(hit);
+      setMark("1");
       return;
     }
     let cancel = false;
-    const run = () => {
-      void flattenCatalogue(raw).then((url) => {
-        if (cancel) return;
-        setShown(url);
-        setMark(url !== raw ? "1" : "0");
-      });
-    };
-    const cancelIdle = scheduleIdle(run);
+    void loadDisplayUrl(photoKey, raw, maxEdge).then((url) => {
+      if (cancel) return;
+      setShown(url);
+      setMark(url === raw ? "0" : "1");
+    });
     return () => {
       cancel = true;
-      cancelIdle();
     };
-  }, [raw]);
+  }, [raw, cacheKey, photoKey, definition, maxEdge]);
   return (
     <div className={cn("garment-photo overflow-hidden bg-photo", className)}>
       {shown ? (
         <img
           src={shown}
           alt={g.name}
-          width={480}
-          height={600}
+          width={definition === "full" ? 960 : 512}
+          height={definition === "full" ? 1200 : 640}
           decoding="async"
           loading={eager ? "eager" : "lazy"}
           data-flat={mark}
-          className={cn("h-full w-full", ready && "is-ready")}
-          onLoad={() => setReady(true)}
+          className="is-ready h-full w-full"
         />
       ) : (
         <div className="skeleton h-full w-full" />
@@ -360,7 +376,7 @@ export function Swatch({ color, size = "sm" }: { color: string; size?: "sm" | "m
   );
 }
 
-export function GarmentCard({ g }: { g: Garment }) {
+export const GarmentCard = memo(function GarmentCard({ g }: { g: Garment }) {
   const save = useSaveGarment();
   const [menu, setMenu] = useState(false);
   const [named, setNamed] = useState(false);
@@ -468,7 +484,7 @@ export function GarmentCard({ g }: { g: Garment }) {
       ) : null}
     </>
   );
-}
+});
 
 function PieceMenu({
   id,
