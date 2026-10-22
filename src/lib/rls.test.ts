@@ -42,11 +42,19 @@ describe("règles d'accès de la sauvegarde", () => {
     expect(sql).toContain("timezone('Europe/Paris', now())");
   });
 
+  it("laisse chacun lire son propre compteur", () => {
+    expect(sql).toMatch(/create policy ai_usage_select_own[\s\S]*?on public\.ai_usage[\s\S]*?using \(auth\.uid\(\) = user_id\)/);
+  });
+
   it("range les photos dans un bac privé, au nom de la personne", () => {
-    expect(sql).toContain(`'${PHOTO_BUCKET}', '${PHOTO_BUCKET}', false`);
-    expect(sql).toContain("public = false");
-    expect(sql).toContain("(storage.foldername(name))[1] = auth.uid()::text");
-    expect(lower).not.toContain("bucket public");
+    const policies = (sql.match(/create policy[^;]+;/g) ?? []).filter((block) => block.includes("storage.objects"));
+    expect(policies.length).toBe(4);
+    for (const policy of policies) {
+      expect(policy).toContain(`bucket_id = '${PHOTO_BUCKET}'`);
+      expect(policy).toContain("(storage.foldername(name))[1] = auth.uid()::text");
+      expect(policy.toLowerCase()).not.toContain("to anon");
+      expect(policy.toLowerCase()).not.toContain("using (true)");
+    }
   });
 
   it("reprend les mêmes catégories, couleurs, motifs et styles que l'application", () => {
